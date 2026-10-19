@@ -40,9 +40,10 @@ python3 scripts/build.py Regular      # one style
 
 ## Maths in LaTeX
 
-There is no maths font that matches a grotesk, and odv Grotesk doesn't try to be one.
-Under LuaLaTeX, `unicode-math` takes the structure (fraction rules, big brackets, integrals, ℝ) from [Fira Math](https://github.com/firamath/firamath) and the letters, digits and Greek from odv Grotesk, so equations read in the same type as the text.
-[`preview/preview.tex`](preview/preview.tex) shows the setup; build the fonts first, then run `lualatex preview.tex` in `preview/`.
+odv Grotesk is a text font, not a maths font: it has no maths spacing, italic correction or script sizes, so equations stay in Computer Modern.
+[odv-latex](https://github.com/odv-hu/odv-latex) (`odv.sty`) sets text in odv Grotesk and maths in Computer Modern enlarged to 112 %.
+The Greek letters here are for running text, Keynote and the website.
+[`preview/preview.tex`](preview/preview.tex) shows the glyphs; its equations still use an earlier experiment (Fira Math with odv Grotesk letters) that was dropped.
 
 ## Licence
 

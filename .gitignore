@@ -5,6 +5,7 @@ fonts/
 preview/*.pdf
 preview/*.aux
 preview/*.log
+preview/*.synctex.gz
 __pycache__/
 *.pyc
 .venv/
