@@ -1,0 +1,82 @@
+% !TEX program = lualatex
+% Preview of odv Grotesk: the added Greek and maths glyphs in text and equations.
+% Build the fonts first (python3 scripts/build.py), then: lualatex preview.tex
+\documentclass[11pt]{article}
+\usepackage[a4paper, left=25mm, right=45mm, top=25mm, bottom=25mm]{geometry}
+\usepackage{xcolor}
+\definecolor{ink}{HTML}{161514}
+\definecolor{muted}{HTML}{6B655E}
+\color{ink}
+\usepackage{unicode-math}
+\setmainfont{odvGrotesk}[
+  Path = ../fonts/ttf/, Extension = .ttf,
+  UprightFont = *-Regular, ItalicFont = *-Italic,
+  BoldFont = *-Bold, BoldItalicFont = *-BoldItalic]
+% Maths: structure (fractions, integrals, big brackets, blackboard bold) from Fira Math;
+% letters, digits and Greek from odv Grotesk, so equations read in the same type as the text.
+\setmathfont{FiraMath-Regular.otf}[Path = ../upstream/]
+\setmathfont{odvGrotesk-Regular.ttf}[Path = ../fonts/ttf/, range = {up/{num,latin,Latin,greek,Greek}}]
+\setmathfont{odvGrotesk-Italic.ttf}[Path = ../fonts/ttf/, range = {it->up}]
+\setmathfont{odvGrotesk-Bold.ttf}[Path = ../fonts/ttf/, range = {bfup->up}]
+\setmathfont{odvGrotesk-BoldItalic.ttf}[Path = ../fonts/ttf/, range = {bfit->up}]
+\setmathfont{odvGrotesk-Regular.ttf}[Path = ../fonts/ttf/, range = {"2207,"2208,"2200,"2203,"2213,"22C5,"2202,"00D7}]
+\linespread{1.25}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6\baselineskip}
+\newcommand\caps[1]{{\addfontfeatures{LetterSpace=6}\footnotesize\color{muted}\MakeUppercase{#1}}}
+\newfontfamily\R{odvGrotesk-Regular.ttf}[Path=../fonts/ttf/]
+\newfontfamily\I{odvGrotesk-Italic.ttf}[Path=../fonts/ttf/]
+\newfontfamily\M{odvGrotesk-Medium.ttf}[Path=../fonts/ttf/]
+\newfontfamily\MI{odvGrotesk-MediumItalic.ttf}[Path=../fonts/ttf/]
+\newfontfamily\B{odvGrotesk-Bold.ttf}[Path=../fonts/ttf/]
+\newfontfamily\BI{odvGrotesk-BoldItalic.ttf}[Path=../fonts/ttf/]
+\newfontfamily\SG{SchibstedGrotesk-Regular.ttf}[Path=../upstream/]
+\pagestyle{empty}
+\begin{document}
+
+\caps{odv Grotesk · preview 1 · 19 October 2026}
+
+{\fontsize{26}{30}\selectfont\M Greek and maths for Schibsted Grotesk}
+
+\caps{added glyphs}\\[2pt]
+{\fontsize{20}{28}\selectfont
+\R ΓΘΛΞΦΨ γδεϵζηθκλνρστυφϕχψω ∇∈∀∃∓⋅\\
+\I ΓΘΛΞΦΨ γδεϵζηθκλνρστυφϕχψω ∇∈∀∃∓⋅\\
+\M ΓΘΛΞΦΨ γδεϵζηθκλνρστυφϕχψω ∇∈∀∃∓⋅\\
+\MI ΓΘΛΞΦΨ γδεϵζηθκλνρστυφϕχψω ∇∈∀∃∓⋅\\
+\B ΓΘΛΞΦΨ γδεϵζηθκλνρστυφϕχψω ∇∈∀∃∓⋅\\
+\BI ΓΘΛΞΦΨ γδεϵζηθκλνρστυφϕχψω ∇∈∀∃∓⋅}
+
+\caps{already in Schibsted Grotesk, for comparison}\\[2pt]
+{\fontsize{20}{28}\selectfont\SG ΔΠΣΩ αβμπ ∂×± ok pv xn t}
+
+\caps{next to the Latin letters they borrow from}\\[2pt]
+{\fontsize{20}{28}\selectfont\R kκ pρ oσ vγ xχ nη tτ oδ uυ ∈ϵε}
+
+\caps{in running text}
+
+The derated thermal transmittance adds a correction ζ to the one-dimensional value U\textsubscript{0}.
+Linear thermal bridges enter as l·Ψ and point bridges as n·χ, so the scope of this paper is the sum of the Ψ and χ terms; κ converts model units to metres.
+The relative errors δ\textsubscript{phys} and δ\textsubscript{recon} stay below 2\,\% in every case, and ΔT\textsubscript{si,min} below 0.1\,K.
+\emph{In italic: the flux density q follows Fourier's law with conductivity λ, so ζ, κ, χ and Ψ are all derived from ∇T.}
+
+\caps{in equations}
+\begin{equation}
+    U_d = \underbrace{\frac{1}{R_\mathrm{si} + \sum_i^n \frac{d_i}{\lambda_{2,i}}+ R_\mathrm{se}}}_{U_0} \cdot \overbrace{\left( 1+ \zeta \right)}^{\mathrm{derating}}
+\end{equation}
+\begin{equation}
+    U_{d} = U_0 + \Delta U_f + \Delta U_g + \Delta U_r + \sum_j^n l_j \Psi_j + \sum_k^m n_k \chi_k
+\end{equation}
+\begin{equation}
+    \vec{q} = -\lambda \nabla T, \qquad \vec{q}(x,y,z) \in \mathbb{R}^3
+\end{equation}
+\begin{equation}
+    \zeta = \frac{\iint_A \vec{q} \cdot \vec{n} \, \mathrm{d}A}{U_0 \cdot A \cdot \Delta T} - 1
+\end{equation}
+\begin{equation}
+    U_{\mathrm{eff}} = \kappa\,\frac{V_{\mathrm{solid}}}{s\,A}, \qquad
+    \delta_\mathrm{phys} = \left( \frac{Q_\mathrm{FEM}}{Q_\mathrm{ref}} - 1 \right) \cdot 100\,\%,
+    \qquad \mathbf{n} = \frac{\mathbf{t}_u \times \mathbf{t}_v}{\|\mathbf{t}_u \times \mathbf{t}_v\|}
+\end{equation}
+
+\end{document}

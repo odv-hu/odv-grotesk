@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>capHeight</key>
+    <integer>1440</integer>
+    <key>italicAngle</key>
+    <real>-12.0</real>
+    <key>unitsPerEm</key>
+    <integer>2048</integer>
+    <key>xHeight</key>
+    <integer>1080</integer>
+  </dict>
+</plist>

@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="uni223C" format="2">
+  <advance width="1299"/>
+  <unicode hex="223C"/>
+  <outline>
+    <component base="asciitilde"/>
+  </outline>
+</glyph>

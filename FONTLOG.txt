@@ -1,0 +1,29 @@
+FONTLOG for odv Grotesk
+=======================
+
+odv Grotesk is Schibsted Grotesk with Greek and mathematical characters added,
+for typesetting technical writing (LuaLaTeX) and for the odv.hu website.
+
+Schibsted Grotesk: https://github.com/schibsted/schibsted-grotesk
+Copyright 2023 The Schibsted-Grotesk Project Authors, SIL Open Font License 1.1.
+odv Grotesk is a modified version under the same licence; it is not affiliated
+with or endorsed by Schibsted.
+
+ChangeLog
+---------
+
+0.1.0 (2026-10-19)
+- Based on Schibsted Grotesk 1.100 (commit d485f61), static instances
+  Regular, Medium, Bold and their italics.
+- Added Greek capitals Γ Θ Λ Ξ Φ Ψ, and the capitals shared with Latin
+  (Α Β Ε Ζ Η Ι Κ Μ Ν Ο Ρ Τ Υ Χ) as references to the Latin glyphs.
+- Added Greek lowercase γ δ ε ζ η θ ι κ λ ν ο ρ σ τ υ φ χ ψ ω, and the
+  symbol variants ϵ (lunate epsilon) and ϕ.
+- Added ∇ ∈ ∀ ∃ ∓ ⋅ ∼.
+- Renamed the family to odv Grotesk.
+
+Acknowledgements
+----------------
+
+Original design: Schibsted ASA and the Schibsted-Grotesk project authors.
+Greek and mathematical additions: Balázs Fürtön (https://odv.hu).

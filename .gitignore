@@ -1,0 +1,11 @@
+# downloaded by scripts/build.py
+upstream/
+# built: fonts go out with releases
+fonts/
+preview/*.pdf
+preview/*.aux
+preview/*.log
+__pycache__/
+*.pyc
+.venv/
+.DS_Store

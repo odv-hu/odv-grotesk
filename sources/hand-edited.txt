@@ -1,0 +1,3 @@
+# Glyphs finished by hand in a font editor: scripts/draw.py leaves these alone.
+# One glyph name per line, e.g.
+# uni03B6
