@@ -12,6 +12,12 @@ with or endorsed by Schibsted.
 ChangeLog
 ---------
 
+0.2.0 (2026-10-22)
+- Reshaped I, a and e (scripts/modify.py), in every style:
+  I without serifs, spaced like the stem of H; e with its lower terminal cut
+  level; a with a flat top to the bowl and a tighter corner (upright styles).
+  Accented composites, IJ, the mark anchors of I and Greek Iota follow.
+
 0.1.1 (2026-10-22)
 - Added ⊥ (up tack, U+22A5), drawn in the weight and width of +.
 
@@ -29,4 +35,4 @@ Acknowledgements
 ----------------
 
 Original design: Schibsted ASA and the Schibsted-Grotesk project authors.
-Greek and mathematical additions: Balázs Fürtön (https://odv.hu).
+Greek and mathematical additions, changes to I, a, e: Balázs Fürtön (https://odv.hu).
