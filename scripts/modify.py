@@ -5,6 +5,11 @@
        opening between it and the bar is a horizontal slot.
     a  (two-storey forms only) the top of the bowl runs flat out from the stem
        and turns down in a tighter corner, instead of sloping down to the left.
+    c  both terminals cut level, like the e.
+    ˙  the dot of i and j is a square, as wide as a little more than the stem
+       of i. It is the same glyph as the dot accent and the two dots of the
+       dieresis (ä ö ü ...), so those turn square with it; ï has its own outline
+       and is squared the same way.
 
 Like draw.py, each change is a recipe on the font's own outlines, measured per
 style, so the same code serves every weight; italics are un-slanted first and
@@ -23,12 +28,13 @@ from geometry import (bounds, glyph_path, intersect, polygon, rect, slant, subtr
 import pathops
 
 BIG = 10000
-CHANGED = ('I', 'e', 'a')
+CHANGED = ('I', 'e', 'a', 'c', 'uni0307', 'idieresis')
 
 # the a's bowl: where the flat top ends, as a share of the counter's width from
 # the left, and how full the corner is (0.55 is a circle, higher is squarer)
 A_FLAT = 0.32
 A_TENSION = 0.66
+DOT_SIDE = 1.15                              # the square dot, in stems of dotless i
 A_TENSION_OUT = 0.58                         # the outside stays rounder, so the corner isn't heavy
 
 
@@ -85,45 +91,75 @@ def r_I(f):
     return stem, round(lsb + (x1 - x0) + rsb), lsb - x0
 
 
-def r_e(f):
-    """Cut the lower terminal level, at the height of its inner corner."""
-    e = f.path('e')
+def _level_terminals(f, ch):
+    """Cut each slanted terminal of `ch` level, at the height of its inner corner;
+    the outer edge is carried on along its own direction to meet the new cut."""
+    glyph = f.path(ch)
     rec = DecomposingRecordingPen(f.gs)
-    f.gs[f.name('e')].draw(rec)
-    pts = []           # (prev_on, prev_offcurve, on) for each segment
-    cur = None
-    cx = (bounds(e)[0] + bounds(e)[2]) / 2
-    xh = f.xh
-    cut = None
-    # the unslant shear is applied by glyph_path; replay it here on the raw points
+    f.gs[f.name(ch)].draw(rec)
+    x0, y0, x1, y1 = bounds(glyph)
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    # glyph_path un-slants with this shear; replay it on the raw points
     sh = math.tan(math.radians(f.italic))
     un = lambda p: (p[0] - p[1] * sh, p[1])
+    cuts = []
+    cur = start = None
     for op, args in rec.value:
+        pts = [un(a) for a in args if a is not None]
         if op == 'moveTo':
-            cur = un(args[0]); start = cur; last_ctrl = None
-        elif op == 'lineTo':
-            nxt = un(args[0])
-            if (cur[0] > cx and nxt[0] > cx and 0.1 * xh < cur[1] < 0.45 * xh
-                    and 0.1 * xh < nxt[1] < 0.45 * xh and abs(cur[1] - nxt[1]) > 5):
-                cut = (cur, nxt, last_ctrl)
-            cur = nxt; last_ctrl = None
-        elif op in ('qCurveTo', 'curveTo'):
-            ctrl = [un(a) for a in args if a is not None]
-            last_ctrl = ctrl[-2] if len(ctrl) > 1 else cur
-            cur = ctrl[-1]
-        elif op == 'closePath':
-            cur = start
-    if cut is None:
-        raise ValueError('e: terminal cut not found')
-    a, b, _ = cut
-    p_in, p_out = (a, b) if a[1] > b[1] else (b, a)
-    # tangent of the outer curve arriving at p_out: from the off-curve before it,
-    # whichever way the contour runs
-    tang = _outer_tangent(rec, p_out, un)
-    dy = p_in[1] - p_out[1]
-    ext = (p_out[0] + tang[0] / tang[1] * dy, p_in[1])
-    patch = polygon(p_in, ext, p_out)
-    return union(e, patch), f.adv('e'), 0
+            cur = start = pts[0]
+            continue
+        if op in ('lineTo', 'closePath', 'endPath'):
+            nxt = pts[0] if op == 'lineTo' else start
+            if (cur[0] > cx and nxt[0] > cx and abs(cur[0] - nxt[0]) > 5
+                    and abs(cur[1] - nxt[1]) > 5):
+                cuts.append((cur, nxt))
+            cur = nxt
+        else:
+            cur = pts[-1]
+    if not cuts:
+        raise ValueError(f'{ch}: no slanted terminal found')
+    out = glyph
+    for a, b in cuts:
+        # the inner corner is the one nearer the middle of the letter
+        da = math.hypot(a[0] - cx, a[1] - cy)
+        db = math.hypot(b[0] - cx, b[1] - cy)
+        p_in, p_out = (a, b) if da < db else (b, a)
+        tang = _outer_tangent(rec, p_out, un)
+        dy = p_in[1] - p_out[1]
+        ext = (p_out[0] + tang[0] / tang[1] * dy, p_in[1])
+        out = union(out, polygon(p_in, ext, p_out))
+    return out
+
+
+def r_e(f):
+    return _level_terminals(f, 'e'), f.adv('e'), 0
+
+
+def r_c(f):
+    return _level_terminals(f, 'c'), f.adv('c'), 0
+
+
+def _square_dots(f, p, above):
+    """Replace the round contours of `p` lying above `above` with squares on the
+    same centres."""
+    side = DOT_SIDE * f.hspan('ı', f.xh / 2)[0][1]
+    out = pathops.Path()
+    for c in _contours(p):
+        x0, y0, x1, y1 = c.bounds
+        if y0 > above and 0.85 < (x1 - x0) / (y1 - y0) < 1.15:
+            mx, my = (x0 + x1) / 2, (y0 + y1) / 2
+            c = rect(mx - side / 2, my - side / 2, mx + side / 2, my + side / 2)
+        out = union(out, c)
+    return out
+
+
+def r_dot(f):
+    return _square_dots(f, f.path('uni0307'), -BIG), 0, 0
+
+
+def r_idieresis(f):
+    return _square_dots(f, f.path('idieresis'), f.xh), f.adv('idieresis'), 0
 
 
 def _outer_tangent(rec, p_out, un):
@@ -189,7 +225,8 @@ def r_a(f):
     return out, f.adv('a'), 0
 
 
-RECIPES = {'I': r_I, 'e': r_e, 'a': r_a}
+RECIPES = {'I': r_I, 'e': r_e, 'a': r_a, 'c': r_c, 'uni0307': r_dot,
+           'idieresis': r_idieresis}
 
 
 # ---------- applying to the TTFont ----------

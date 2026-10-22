@@ -13,9 +13,11 @@ ChangeLog
 ---------
 
 0.2.0 (2026-10-22)
-- Reshaped I, a and e (scripts/modify.py), in every style:
-  I without serifs, spaced like the stem of H; e with its lower terminal cut
-  level; a with a flat top to the bowl and a tighter corner (upright styles).
+- Reshaped I, a, c, e and the dot (scripts/modify.py), in every style:
+  I without serifs, spaced like the stem of H; c and e with their terminals
+  cut level; a with a flat top to the bowl and a tighter corner (upright
+  styles); the dot of i and j square, which also squares the dot accent and
+  the dieresis (uni0307 is shared) and the dots of idieresis.
   Accented composites, IJ, the mark anchors of I and Greek Iota follow.
 
 0.1.1 (2026-10-22)
@@ -35,4 +37,4 @@ Acknowledgements
 ----------------
 
 Original design: Schibsted ASA and the Schibsted-Grotesk project authors.
-Greek and mathematical additions, changes to I, a, e: Balázs Fürtön (https://odv.hu).
+Greek and mathematical additions, changes to I, a, c, e and the dot: Balázs Fürtön (https://odv.hu).

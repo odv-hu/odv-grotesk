@@ -4,7 +4,7 @@ Schibsted Grotesk extended with Greek and maths characters, for odv.hu and LaTeX
 
 [Schibsted Grotesk](https://github.com/schibsted/schibsted-grotesk) covers Latin but has only eight Greek letters (Δ Π Σ Ω α β μ π) and a partial set of maths symbols.
 That is enough for a website, not for technical writing with ζ, χ, κ and ∇ in it.
-odv Grotesk adds the missing characters in the same style, and reshapes three letters (below); everything else is as it was.
+odv Grotesk adds the missing characters in the same style, and reshapes a few letters (below); everything else is as it was.
 It is an independent modified version under the Open Font License, not affiliated with Schibsted.
 
 ## What is added
@@ -25,8 +25,10 @@ Still missing: ξ, ς and the rest of the maths symbols; they come when a text n
 | I | no serifs: a plain stem, spaced like the stem of H |
 | e | the end of the lower stroke is cut level, so the opening is a horizontal slot |
 | a | the top of the bowl runs flat out from the stem and turns down in a tighter corner (upright styles; the italic a is single-storey and unchanged) |
+| c | both terminals cut level |
+| i j | square dot, a little wider than the stem; it is the same glyph as the dot accent and the dieresis, so ä ö ü ż İ turn square too |
 
-Accented forms (Í, é, ą…), IJ and Greek Ι are built from these glyphs and follow them.
+Accented forms (Í, é, ą, ç…), IJ, the fi ligatures and Greek Ι are built from these glyphs and follow them.
 The changes are recipes in [`scripts/modify.py`](scripts/modify.py), applied to each style at build time.
 
 ## How it is made

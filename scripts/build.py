@@ -1,4 +1,4 @@
-"""Build odv Grotesk from Schibsted Grotesk: reshaped I, a, e plus the added glyphs.
+"""Build odv Grotesk from Schibsted Grotesk: reshaped I, a, c, e and dot, plus the added glyphs.
 
     python3 scripts/build.py            # draw the added glyphs, then build all styles
     python3 scripts/build.py --no-draw  # build from sources/*.ufo as they are
@@ -29,7 +29,7 @@ UPSTREAM_URL = ('https://raw.githubusercontent.com/schibsted/schibsted-grotesk/'
                 f'{UPSTREAM_COMMIT}/fonts/ttf/SchibstedGrotesk-{{style}}.ttf')
 FIRA_MATH_URL = 'https://github.com/firamath/firamath/releases/download/v0.3.4/FiraMath-Regular.otf'
 STYLES = ['Regular', 'Medium', 'Bold', 'Italic', 'MediumItalic', 'BoldItalic']
-COPYRIGHT_ADDITION = ('Greek and mathematical additions and changes to I, a, e copyright 2026 '
+COPYRIGHT_ADDITION = ('Greek and mathematical additions and changes to I, a, c, e and the dot copyright 2026 '
                       'Balázs Fürtön (https://github.com/odv-hu/odv-grotesk).')
 
 
