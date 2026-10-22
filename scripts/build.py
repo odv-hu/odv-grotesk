@@ -1,4 +1,4 @@
-"""Build odv Grotesk from Schibsted Grotesk: reshaped I, a, c, e and dot, plus the added glyphs.
+"""Build odv Grotesk from Schibsted Grotesk: reshaped I, a, e plus the added glyphs.
 
     python3 scripts/build.py            # draw the added glyphs, then build all styles
     python3 scripts/build.py --no-draw  # build from sources/*.ufo as they are
@@ -21,7 +21,7 @@ import draw  # noqa: E402
 import modify  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-VERSION = '0.2.0'
+VERSION = '0.3.0'
 FAMILY = 'odv Grotesk'
 PS_FAMILY = 'odvGrotesk'
 UPSTREAM_COMMIT = 'd485f61f105e1b3935f4d21dfb4d371359798603'  # Schibsted Grotesk 1.100
@@ -29,7 +29,7 @@ UPSTREAM_URL = ('https://raw.githubusercontent.com/schibsted/schibsted-grotesk/'
                 f'{UPSTREAM_COMMIT}/fonts/ttf/SchibstedGrotesk-{{style}}.ttf')
 FIRA_MATH_URL = 'https://github.com/firamath/firamath/releases/download/v0.3.4/FiraMath-Regular.otf'
 STYLES = ['Regular', 'Medium', 'Bold', 'Italic', 'MediumItalic', 'BoldItalic']
-COPYRIGHT_ADDITION = ('Greek and mathematical additions and changes to I, a, c, e and the dot copyright 2026 '
+COPYRIGHT_ADDITION = ('Greek and mathematical additions and changes to I, a, e copyright 2026 '
                       'Balázs Fürtön (https://github.com/odv-hu/odv-grotesk).')
 
 
@@ -113,7 +113,7 @@ def build(style, redraw):
     if redraw or not ufo_path.exists():
         draw.draw(src, ufo_path)
     tt = TTFont(src)
-    modify.modify(tt, draw.Font(src))
+    modify.modify(tt, draw.Font(src), src)
     added = merge(tt, ufoLib2.Font.open(ufo_path))
     rename(tt)
     out = ROOT / 'fonts' / 'ttf' / f'{PS_FAMILY}-{style}.ttf'

@@ -12,6 +12,14 @@ with or endorsed by Schibsted.
 ChangeLog
 ---------
 
+0.3.0 (2026-10-22)
+- Contrast: in Medium, Bold and their italics every outline is thinned
+  horizontally (verticals lose 17-46 units, horizontals unchanged), bringing
+  the thin/stem ratio to 0.87. TrueType hinting is removed from those styles.
+- Italic f and t are the upright forms slanted.
+- The square dot now tops out at the height of l and narrows relative to the
+  stem as the weight increases.
+
 0.2.0 (2026-10-22)
 - Reshaped I, a, c, e and the dot (scripts/modify.py), in every style:
   I without serifs, spaced like the stem of H; c and e with their terminals
