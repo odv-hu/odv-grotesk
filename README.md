@@ -13,7 +13,7 @@ It is an independent modified version under the Open Font License, not affiliate
 |---|---|
 | Greek capitals | Γ Θ Λ Ξ Φ Ψ, plus Α Β Ε Ζ Η Ι Κ Μ Ν Ο Ρ Τ Υ Χ (same shapes as the Latin letters) |
 | Greek lowercase | γ δ ε ζ η θ ι κ λ ν ο ρ σ τ υ φ χ ψ ω, plus ϵ and ϕ (the symbol forms LaTeX uses for `\epsilon` and `\phi`) |
-| Maths | ∇ ∈ ∀ ∃ ∓ ⋅ ∼ |
+| Maths | ∇ ∈ ∀ ∃ ∓ ⋅ ∼ ⊥ |
 
 Styles: Regular, Medium, Bold and their italics (Schibsted's static weights, not the variable font).
 Still missing: ξ, ς and the rest of the maths symbols; they come when a text needs them.

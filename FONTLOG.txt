@@ -12,6 +12,9 @@ with or endorsed by Schibsted.
 ChangeLog
 ---------
 
+0.1.1 (2026-10-22)
+- Added ⊥ (up tack, U+22A5), drawn in the weight and width of +.
+
 0.1.0 (2026-10-19)
 - Based on Schibsted Grotesk 1.100 (commit d485f61), static instances
   Regular, Medium, Bold and their italics.

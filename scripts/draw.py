@@ -377,6 +377,17 @@ def r_minusplus(f):
     return transform(f.path('±'), d=-1, f=b[1] + b[3]), f.adv('±')
 
 
+
+def r_perp(f):
+    """⊥: an upturned T in the weight of +, as wide as +, cap height tall."""
+    b = f.bounds('+')
+    cx, cy = (b[0] + b[2]) / 2, (b[1] + b[3]) / 2
+    v = f.hspan('+', (cy + b[3]) / 2)[0][1]       # vertical arm, across
+    h = f.vspan('+', (b[0] + cx) / 2)[0][1]       # horizontal arm, up
+    bar = rect(b[0], 0, b[2], h)
+    stem = rect(cx - v / 2, 0, cx + v / 2, f.cap)
+    return union(bar, stem), f.adv('+')
+
 # name -> (unicode, recipe or alias base)
 GLYPHS = {
     # Greek capitals that are Latin letters
@@ -400,6 +411,7 @@ GLYPHS = {
     'uni2207': (0x2207, r_nabla), 'uni2208': (0x2208, r_element), 'uni2200': (0x2200, r_forall),
     'uni2203': (0x2203, r_exists), 'uni2213': (0x2213, r_minusplus),
     'uni22C5': (0x22C5, '·'), 'uni223C': (0x223C, '~'),
+    'uni22A5': (0x22A5, r_perp),
 }
 
 
