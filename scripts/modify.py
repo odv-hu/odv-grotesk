@@ -6,6 +6,9 @@
     a  (two-storey forms only) the top of the bowl runs flat out from the stem
        and turns down in a tighter corner, instead of sloping down to the left.
     c  both terminals cut level, like the e.
+    i  the stem a touch heavier than n's (I_STEM); i, í, ï, ij... follow.
+    p  the counter moved right until stem and bowl are equally thick at
+       mid-height, which also widens the join of bowl and stem.
     ˙  the dot of i and j is a square whose top is level with the top of l.
        It is a little wider than the stem, relatively wider in light weights
        and narrower in heavy ones (as in Akkurat: 1.32 at Light, 1.14 at
@@ -40,7 +43,7 @@ from geometry import (bounds, glyph_path, intersect, polygon, rect, slant, subtr
 import pathops
 
 BIG = 10000
-CHANGED = ('I', 'e', 'a', 'c', 'uni0307', 'idieresis', 'f', 't')
+CHANGED = ('I', 'ı', 'e', 'a', 'c', 'p', 'uni0307', 'idieresis', 'f', 't')
 
 # the a's bowl: where the flat top ends, as a share of the counter's width from
 # the left, and how full the corner is (0.55 is a circle, higher is squarer)
@@ -54,6 +57,9 @@ DOT_SIDE = ((50, 1.32), (85, 1.14), (125, 1.06))
 CONTRAST = 0.87          # thin of o / stem of n to aim for (Akkurat Regular 0.86, Bold 0.87)
 MIN_ERODE = 5            # font units; below this a style is left alone
 
+
+# the i's stem, in stems of n (Akkurat's i is a little heavier than its n: 87 vs 85)
+I_STEM = 1.06
 
 # ---------- helpers ----------
 
@@ -187,12 +193,56 @@ def _square_dots(f, p, above):
     return out
 
 
+def _widen_x(p, d):
+    """Thicken `p` horizontally by `d` on each side (exact for straight stems)."""
+    return union(p, p.transform(1, 0, 0, 1, -d, 0), p.transform(1, 0, 0, 1, d, 0))
+
+
+def _i_widen(f):
+    stem = f.hspan('ı', f.xh * 0.5)[0][1]
+    return max(0.0, (I_STEM * f.V - stem) / 2)
+
+
+def r_dotlessi(f):
+    """The stem of i a touch heavier than n's: next to the round letters, whose
+    sides are heavier than the straight stems, an i as thick as n looks thin."""
+    return _widen_x(f.path('ı'), _i_widen(f)), f.adv('ı'), 0
+
+
+def r_p(f):
+    """Move the counter of p to the right until the stem and the far side of the
+    bowl are equally thick at mid-height; the join of bowl and stem gains the
+    same amount."""
+    p = f.path('p')
+    cs = _contours(p)
+    if len(cs) != 2:
+        return None
+    inner = min(cs, key=_area)
+    outer = max(cs, key=_area)
+    y = (inner.bounds[1] + inner.bounds[3]) / 2
+    spans = _hspan(p, y)
+    if len(spans) != 2:
+        return None
+    left, right = spans[0][1] - spans[0][0], spans[1][1] - spans[1][0]
+    s = (right - left) / 2
+    if s <= 0.5:
+        return None
+    return subtract(outer, inner.transform(1, 0, 0, 1, s, 0)), f.adv('p'), 0
+
+
 def r_dot(f):
     return _square_dots(f, f.path('uni0307'), -BIG), 0, 0
 
 
 def r_idieresis(f):
-    return _square_dots(f, f.path('idieresis'), f.xh), f.adv('idieresis'), 0
+    p = _square_dots(f, f.path('idieresis'), f.xh)
+    d = _i_widen(f)
+    out = pathops.Path()
+    for c in _contours(p):
+        if c.bounds[1] < f.xh / 2:          # the stem, not the dots
+            c = _widen_x(c, d)
+        out = union(out, c)
+    return out, f.adv('idieresis'), 0
 
 
 def _from_upright(f, ch):
@@ -463,7 +513,7 @@ def r_a(f):
     return out, f.adv('a'), 0
 
 
-RECIPES = {'I': r_I, 'e': r_e, 'a': r_a, 'c': r_c, 'uni0307': r_dot,
+RECIPES = {'I': r_I, 'ı': r_dotlessi, 'p': r_p, 'e': r_e, 'a': r_a, 'c': r_c, 'uni0307': r_dot,
            'idieresis': r_idieresis, 'f': r_f, 't': r_t}
 
 

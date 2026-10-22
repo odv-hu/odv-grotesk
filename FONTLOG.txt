@@ -12,6 +12,12 @@ with or endorsed by Schibsted.
 ChangeLog
 ---------
 
+0.3.1 (2026-10-22)
+- i: the stem 6% heavier than n's, so it no longer reads thin next to the
+  round letters; i, í, ì, î, ï, ij and the fi ligatures follow.
+- p: the counter moved right until the stem and the bowl are equally thick at
+  mid-height, which also widens the join of bowl and stem.
+
 0.3.0 (2026-10-22)
 - Contrast: in Medium, Bold and their italics every outline is thinned
   horizontally (verticals lose 17-46 units, horizontals unchanged), bringing

@@ -27,6 +27,8 @@ Still missing: ξ, ς and the rest of the maths symbols; they come when a text n
 | a | the top of the bowl runs flat out from the stem and turns down in a tighter corner (upright styles; the italic a is single-storey and unchanged) |
 | c | both terminals cut level |
 | i j | square dot, top level with the top of l, a little wider than the stem (relatively less in heavier weights); it is the same glyph as the dot accent and the dieresis, so ä ö ü ż İ turn square too |
+| i | stem a touch heavier than n's, so it doesn't read thin next to round letters |
+| p | counter moved right so stem and bowl are equally thick, which widens the join |
 | f t (italics) | the upright f and t slanted, instead of the cursive forms |
 | contrast | Medium and Bold (and their italics) have thinner verticals, so horizontals no longer look thin next to the stems; Bold now matches Akkurat Pro Bold in stem weight and contrast |
 
