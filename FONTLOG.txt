@@ -17,6 +17,12 @@ ChangeLog
   x-height and turns through a round bottom, like υ's, into the foot of a
   steeper right arm, so ν = 0.3 (Poisson's ratio) can't be read as v = 0.3.
   Spaced like n on the left and like v on the right, in every style.
+- Italics: the drawn Greek and maths glyphs were spaced as if the italic
+  were slanted about the baseline, but Schibsted's is slanted about
+  mid-x-height, so their right sidebearings came out about 230 units too
+  tight (τ ran into the next letter) and ∃ was shifted right. Φ Ψ γ δ ε ζ θ
+  λ σ τ φ χ ψ ω ϕ ϵ ∈ ∃ are now spaced like their upright forms. The upright
+  styles are unchanged.
 
 0.3.2 (2026-11-12)
 - Font files: head.fontRevision is now 0.302 (it dropped the patch number,

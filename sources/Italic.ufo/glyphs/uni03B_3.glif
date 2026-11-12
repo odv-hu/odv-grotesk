@@ -5,15 +5,15 @@
   <outline>
     <contour>
       <point x="164.0" y="1080.0" type="line"/>
-      <point x="449.4945983886719" y="0.0" type="line"/>
-      <point x="450.6429443359375" y="-2.842170943040401e-14" type="line"/>
-      <point x="367.7458801269531" y="-390.0" type="line"/>
-      <point x="532.4600219726562" y="-390.0" type="line"/>
-      <point x="615.3570556640625" y="0.0" type="line"/>
-      <point x="616.50537109375" y="0.0" type="line"/>
-      <point x="1361.1220703125" y="1080.0" type="line"/>
-      <point x="1194.111328125" y="1080.0" type="line"/>
-      <point x="570.218505859375" y="175.0991668701172" type="line"/>
+      <point x="334.71405029296875" y="0.0" type="line"/>
+      <point x="335.8623962402344" y="-2.842170943040401e-14" type="line"/>
+      <point x="252.96533203125" y="-390.0" type="line"/>
+      <point x="417.679443359375" y="-390.0" type="line"/>
+      <point x="500.5765075683594" y="0.0" type="line"/>
+      <point x="501.7248229980469" y="0.0" type="line"/>
+      <point x="1131.56103515625" y="1080.0" type="line"/>
+      <point x="964.5502319335938" y="1080.0" type="line"/>
+      <point x="466.1104736328125" y="225.30958557128906" type="line"/>
       <point x="331.01080322265625" y="1080.0" type="line"/>
     </contour>
   </outline>

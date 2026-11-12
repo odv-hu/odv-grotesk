@@ -35,6 +35,10 @@ class Font:
         self._cache = {}
         os2 = self.tt['OS/2']
         self.xh, self.cap = os2.sxHeight, os2.sCapHeight
+        # The italic is slanted about mid-x-height, so un-slanted (about the baseline)
+        # every glyph sits this far left of where an upright one would: v is -66/162.
+        # lsb, rsb and fit take it out and put it back, so recipes think upright.
+        self.shift = math.tan(math.radians(self.italic)) * self.xh / 2
         o = self.bounds('o')
         self.os = o[3] - self.xh                      # overshoot
         self.asc = self.bounds('l')[3]
@@ -65,10 +69,16 @@ class Font:
         return self.tt['hmtx'][self.name(ch)][0]
 
     def lsb(self, ch):
-        return self.bounds(ch)[0]
+        """Left sidebearing as it would be upright (un-slanted, less the italic's shift)."""
+        return self.bounds(ch)[0] + self.shift
 
     def rsb(self, ch):
-        return self.adv(ch) - self.bounds(ch)[2]
+        return self.adv(ch) - self.bounds(ch)[2] - self.shift
+
+    def fit(self, p, lsb, rsb):
+        """Place the outline at the given (upright) sidebearings; returns (outline, advance)."""
+        x0, _, x1, _ = bounds(p)
+        return move(p, lsb - self.shift - x0), round(x1 - x0 + lsb + rsb)
 
     def hspan(self, ch, y):
         """[(x, width), ...] of the ink crossed by a horizontal line at y."""
@@ -86,12 +96,6 @@ def _cb(contour):
     p = pathops.Path()
     contour.draw(p.getPen())
     return p.bounds
-
-
-def fit(p, lsb, rsb):
-    """Place the outline at the given sidebearings; returns (outline, advance)."""
-    x0, _, x1, _ = bounds(p)
-    return move(p, lsb - x0), round(x1 - x0 + lsb + rsb)
 
 
 def para(x0, y0, x1, y1, w):
@@ -118,7 +122,7 @@ def r_sigma(f):
     top = o[3]                  # the bar sits on the bowl's overshoot, so they meet flush
     bowl = subtract(f.path('o'), rect(cx, top, BIG, BIG))
     bar = rect(cx - 0.04 * (o[2] - o[0]), top - f.H, o[2] + 0.1 * (o[2] - o[0]), top)
-    return fit(union(bowl, bar), f.SBr, f.SBd * 0.6)
+    return f.fit(union(bowl, bar), f.SBr, f.SBd * 0.6)
 
 
 def _lunate(f, y0, y1, width, v, h, bar=True):
@@ -135,7 +139,7 @@ def _lunate(f, y0, y1, width, v, h, bar=True):
     out = stroke(s, v, h)
     if bar:
         out = union(out, rect(lc, yc - h / 2, R - 0.06 * width, yc + h / 2))
-    return fit(out, L, f.SB * 0.55)
+    return f.fit(out, L, f.SB * 0.55)
 
 
 def r_epsilon_lunate(f):        # ϵ (\epsilon in unicode-math)
@@ -167,7 +171,7 @@ def r_epsilon(f):               # ε (\varepsilon)
     lower = Skeleton(*_pt(lcx, lcy, lrx, lry, 90)).arc(lcx, lcy, lrx, lry, 90, 342)
     middle = rect(ucx - 0.12 * w, mid - h / 2, ucx + 0.02 * w, mid + h / 2)
     out = union(stroke(upper, v, h), stroke(lower, v, h), middle)
-    return fit(out, L, f.SBr * 0.7)
+    return f.fit(out, L, f.SBr * 0.7)
 
 
 def _pt(cx, cy, rx, ry, a):
@@ -185,7 +189,7 @@ def r_lambda(f):
     foot = left + meet[1] * math.tan(math.radians(f.italic)) * 0.6  # keep the leg's angle once slanted
     short = para(foot, 0, meet[0], meet[1], d)
     out = intersect(union(long_, short), rect(-BIG, 0, BIG, f.asc))
-    return fit(out, f.SBd, f.SBd)
+    return f.fit(out, f.SBd, f.SBd)
 
 
 def r_chi(f):
@@ -194,7 +198,7 @@ def r_chi(f):
     l, r = f.SBd + d / 2, f.SBd + w - d / 2
     out = union(para(l, f.xh, r, f.desc, d), para(r, f.xh, l, f.desc, d))
     out = intersect(out, rect(-BIG, f.desc, BIG, f.xh))
-    return fit(out, f.SBd, f.SBd)
+    return f.fit(out, f.SBd, f.SBd)
 
 
 def r_gamma(f):
@@ -205,7 +209,7 @@ def r_gamma(f):
     arms = union(para(l, f.xh, cx, 0, d), para(r, f.xh, cx, 0, d))
     arms = intersect(arms, rect(-BIG, 0, BIG, f.xh))
     tail = rect(cx - f.V / 2, f.desc, cx + f.V / 2, f.H)
-    return fit(union(arms, tail), f.SBd, f.SBd)
+    return f.fit(union(arms, tail), f.SBd, f.SBd)
 
 
 def r_delta(f):
@@ -220,7 +224,7 @@ def r_delta(f):
          .curve(cx - 0.29 * w, yt - 0.03 * f.xh, cx - 0.18 * w, yt, cx + 0.02 * w, yt)
          .line(cx + 0.36 * w, yt))
     # less contrast than elsewhere: the rising stroke is shallow and would get too thin
-    return fit(union(bowl, stroke(s, v, (v + h) / 2)), f.SBr, f.SBr * 0.8)
+    return f.fit(union(bowl, stroke(s, v, (v + h) / 2)), f.SBr, f.SBr * 0.8)
 
 
 def r_zeta(f):
@@ -240,7 +244,7 @@ def r_zeta(f):
          .line(R - 0.24 * w, yb)
          .curve(R - 0.06 * w, yb, R, yb - 0.08 * f.xh, R, yb - 0.22 * f.xh)
          .line(R, f.desc * 0.82))
-    return fit(stroke(s, v, h, join=JOIN_MITER), f.SBr, f.SBr * 0.8)
+    return f.fit(stroke(s, v, h, join=JOIN_MITER), f.SBr, f.SBr * 0.8)
 
 
 def r_theta(f):
@@ -248,7 +252,7 @@ def r_theta(f):
     ring = ellipse_ring(0, -f.os, w, f.asc + f.os, f.Vr, f.H)
     yc = f.asc / 2
     bar = rect(f.Vr / 2, yc - f.H / 2, w - f.Vr / 2, yc + f.H / 2)
-    return fit(union(ring, bar), f.SBr, f.SBr)
+    return f.fit(union(ring, bar), f.SBr, f.SBr)
 
 
 def r_eta(f):
@@ -264,7 +268,7 @@ def r_tau(f):
     bar = f.hspan('t', f.xh - f.H / 2)[0]
     reach = max(bar[0] + bar[1] - sc, sc - bar[0])     # make the bar symmetric
     out = union(t, rect(sc - reach, f.xh - f.H, sc + reach, f.xh))
-    return fit(out, f.SBd, f.SBd)
+    return f.fit(out, f.SBd, f.SBd)
 
 
 def _cup(f):
@@ -305,21 +309,21 @@ def r_nu(f):
     inside = polygon((-BIG, -BIG), (edge(-BIG), -BIG), (edge(BIG), BIG), (-BIG, BIG))
     out = intersect(union(bowl, arm), inside)
     out = intersect(out, rect(-BIG, -f.os, BIG, f.xh))
-    return fit(out, f.SB, f.rsb('v'))
+    return f.fit(out, f.SB, f.rsb('v'))
 
 
 
 def r_psi(f):
     cup = _cup(f); o = bounds(cup); cx = (o[0] + o[2]) / 2
     stem = rect(cx - f.V / 2, f.desc, cx + f.V / 2, f.asc)
-    return fit(union(cup, stem), f.SBr, f.SBr)
+    return f.fit(union(cup, stem), f.SBr, f.SBr)
 
 
 def r_phi(f):
     o = f.bounds('o'); w = 1.06 * (o[2] - o[0])
     ring = ellipse_ring(0, -f.os, w, f.xh + f.os, f.Vr, f.H)
     stem = rect(w / 2 - f.V / 2, f.desc, w / 2 + f.V / 2, f.asc)
-    return fit(union(ring, stem), f.SBr, f.SBr)
+    return f.fit(union(ring, stem), f.SBr, f.SBr)
 
 
 def r_omega(f):
@@ -335,7 +339,7 @@ def r_omega(f):
     right = (Skeleton(R, f.xh).line(R, cy)
              .arc((R + M) / 2, cy, (R - M) / 2, ry, 360, 180).line(M, top))
     out = union(stroke(left, v, h), stroke(right, v, h))
-    return fit(out, f.SBr, f.SBr)
+    return f.fit(out, f.SBr, f.SBr)
 
 
 # capitals
@@ -371,7 +375,7 @@ def r_Phi(f):
     O = f.bounds('O'); w = 1.0 * (O[2] - O[0])
     ring = ellipse_ring(0, f.cap * 0.16, w, f.cap * 0.84, f.CV, f.CH)
     stem = rect(w / 2 - f.CV / 2, 0, w / 2 + f.CV / 2, f.cap)
-    return fit(union(ring, stem), f.SBr, f.SBr)
+    return f.fit(union(ring, stem), f.SBr, f.SBr)
 
 
 def r_Psi(f):
@@ -385,7 +389,7 @@ def r_Psi(f):
     yc = ybot + ry
     cup = Skeleton(L, f.cap).line(L, yc).arc(cx, yc, rx, ry, 180, 360).line(R, f.cap)
     stem = rect(cx - v / 2, 0, cx + v / 2, f.cap)
-    return fit(union(stroke(cup, v, h), stem), f.SB * 0.6, f.SB * 0.6)
+    return f.fit(union(stroke(cup, v, h), stem), f.SB * 0.6, f.SB * 0.6)
 
 
 # maths
@@ -400,7 +404,7 @@ def r_forall(f):
 
 def r_exists(f):
     p = transform(f.path('E'), a=-1)
-    return fit(p, f.rsb('E'), f.lsb('E'))
+    return f.fit(p, f.rsb('E'), f.lsb('E'))
 
 
 def r_minusplus(f):
