@@ -652,8 +652,10 @@ def modify(tt, font, src=None):
         done.append(name)
     if font.erode:
         _erode_all(tt, font, font.erode)
-        _strip_hinting(tt)
         done.append(f'contrast: verticals thinned by {2 * font.erode:.0f} units')
+    # Every style has reshaped glyphs, so no style keeps hints: mixed hinted and unhinted
+    # letters would render differently side by side on Windows.
+    _strip_hinting(tt)
     for tag in ('hdmx', 'LTSH', 'VDMX'):
         if tag in tt:
             del tt[tag]

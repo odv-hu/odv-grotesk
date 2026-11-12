@@ -12,6 +12,16 @@ with or endorsed by Schibsted.
 ChangeLog
 ---------
 
+0.3.2 (2026-11-12)
+- Font files: head.fontRevision is now 0.302 (it dropped the patch number,
+  so 0.3.0 and 0.3.1 both said 0.3). Manufacturer is o d v, the designer
+  field credits both Schibsted Grotesk's designers and odv Grotesk, the
+  vendor ID is no longer Bakken & Baeck's, and the copyright line no longer
+  lists individual letters.
+- Hinting removed from every style. Regular and Italic kept Schibsted's
+  hints on the untouched glyphs only, so hinted and unhinted letters could
+  render differently side by side on Windows.
+
 0.3.1 (2026-10-22)
 - i: the stem 6% heavier than n's, so it no longer reads thin next to the
   round letters; i, í, ì, î, ï, ij and the fi ligatures follow.

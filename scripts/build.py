@@ -21,7 +21,7 @@ import draw  # noqa: E402
 import modify  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-VERSION = '0.3.1'
+VERSION = '0.3.2'
 FAMILY = 'odv Grotesk'
 PS_FAMILY = 'odvGrotesk'
 UPSTREAM_COMMIT = 'd485f61f105e1b3935f4d21dfb4d371359798603'  # Schibsted Grotesk 1.100
@@ -29,8 +29,19 @@ UPSTREAM_URL = ('https://raw.githubusercontent.com/schibsted/schibsted-grotesk/'
                 f'{UPSTREAM_COMMIT}/fonts/ttf/SchibstedGrotesk-{{style}}.ttf')
 FIRA_MATH_URL = 'https://github.com/firamath/firamath/releases/download/v0.3.4/FiraMath-Regular.otf'
 STYLES = ['Regular', 'Medium', 'Bold', 'Italic', 'MediumItalic', 'BoldItalic']
-COPYRIGHT_ADDITION = ('Greek and mathematical additions and changes to I, a, e copyright 2026 '
+COPYRIGHT_ADDITION = ('Greek and mathematical additions and modifications copyright 2026 '
                       'Balázs Fürtön (https://github.com/odv-hu/odv-grotesk).')
+MANUFACTURER = 'o d v'
+MANUFACTURER_URL = 'https://odv.hu'
+DESIGNER = 'Bakken & Baeck AS, Henrik Kongsvoll (Schibsted Grotesk); Balázs Fürtön (odv Grotesk)'
+VENDOR_ID = 'NONE'  # not registered with Microsoft; Schibsted's 'BBT' belongs to Bakken & Baeck
+
+
+def font_revision(version):
+    """head.fontRevision for MAJOR.MINOR.PATCH: 0.3.2 -> 0.302. Needs MINOR < 10 and PATCH < 100."""
+    major, minor, patch = (int(n) for n in version.split('.'))
+    assert minor < 10 and patch < 100, version
+    return float(f'{major}.{minor}{patch:02d}')
 
 
 def upstream(style):
@@ -93,6 +104,12 @@ def rename(tt):
             s = s.rstrip() + ' ' + COPYRIGHT_ADDITION
         elif rec.nameID == 5:
             s = f'Version {VERSION}; based on Schibsted Grotesk 1.100'
+        elif rec.nameID == 8:
+            s = MANUFACTURER
+        elif rec.nameID == 9:
+            s = DESIGNER
+        elif rec.nameID == 11:
+            s = MANUFACTURER_URL
         elif rec.nameID in (1, 3, 4, 6, 16, 18, 21):
             s = s.replace('Schibsted Grotesk', FAMILY).replace('SchibstedGrotesk', PS_FAMILY)
             if rec.nameID == 3:
@@ -100,8 +117,9 @@ def rename(tt):
         else:
             continue
         rec.string = s
-    tt['head'].fontRevision = float(VERSION.rsplit('.', 1)[0])
+    tt['head'].fontRevision = font_revision(VERSION)
     os2 = tt['OS/2']
+    os2.achVendID = VENDOR_ID
     os2.ulUnicodeRange1 |= 1 << 7            # Greek and Coptic
     os2.ulUnicodeRange2 |= 1 << (38 - 32)    # Mathematical Operators
     os2.ulCodePageRange1 |= 1 << 3           # 1253 Greek
