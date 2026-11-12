@@ -12,6 +12,12 @@ with or endorsed by Schibsted.
 ChangeLog
 ---------
 
+0.3.3 (2026-11-13)
+- ν (nu) is no longer a copy of v: its left stroke drops straight from the
+  x-height and turns through a round bottom, like υ's, into the foot of a
+  steeper right arm, so ν = 0.3 (Poisson's ratio) can't be read as v = 0.3.
+  Spaced like n on the left and like v on the right, in every style.
+
 0.3.2 (2026-11-12)
 - Font files: head.fontRevision is now 0.302 (it dropped the patch number,
   so 0.3.0 and 0.3.1 both said 0.3). Manufacturer is o d v, the designer

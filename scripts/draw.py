@@ -278,6 +278,37 @@ def r_upsilon(f):
     return _cup(f), f.adv('o')
 
 
+def r_nu(f):
+    """ν: v's right arm, steeper, and a left stem that drops straight and turns
+    through a round bottom, like υ's, into the foot of the arm, so ν = 0.3
+    can't be read as v = 0.3."""
+    v = f.bounds('v')
+    top = f.hspan('v', f.xh - 2)[-1]                  # right arm at the x-height
+    d = top[1]
+    slope = (top[0] + d / 2 - (v[0] + v[2]) / 2) / f.xh   # v's arm: run per unit height
+    slope *= 0.7                                      # steeper, to give the bowl room
+    stem, h = f.V * 0.96, f.H
+    w = 0.9 * (v[2] - v[0])                           # a little narrower than v
+    xt = w - d / 2                                    # right arm centre at the top
+    xb = xt - slope * f.xh                            # ... and at the baseline
+    edge = lambda y: xb + d / 2 + slope * y           # the arm's outer edge
+    x0 = stem / 2
+    turn = f.xh * 0.5                                 # where the stem starts to bend
+    low = h / 2 - f.os                                # the bottom overshoots like a bowl
+    ey = h / 2                                        # and comes back up to the baseline at the vertex
+    ex = edge(ey) + d / 2                             # runs on past the arm, cut off below
+    k = 0.55 * (ex - x0)
+    s = (Skeleton(x0, f.xh).line(x0, turn)
+         .curve(x0, turn - 0.6 * (turn - low), ex - k, low, ex, ey))
+    bowl = stroke(s, stem, h)
+    arm = intersect(para(xb, 0, xt, f.xh, d), rect(-BIG, ey, BIG, BIG))
+    inside = polygon((-BIG, -BIG), (edge(-BIG), -BIG), (edge(BIG), BIG), (-BIG, BIG))
+    out = intersect(union(bowl, arm), inside)
+    out = intersect(out, rect(-BIG, -f.os, BIG, f.xh))
+    return fit(out, f.SB, f.rsb('v'))
+
+
+
 def r_psi(f):
     cup = _cup(f); o = bounds(cup); cx = (o[0] + o[2]) / 2
     stem = rect(cx - f.V / 2, f.desc, cx + f.V / 2, f.asc)
@@ -400,7 +431,7 @@ GLYPHS = {
     'uni0393': (0x0393, r_Gamma), 'uni0398': (0x0398, r_Theta), 'uni039B': (0x039B, r_Lambda),
     'uni039E': (0x039E, r_Xi), 'uni03A6': (0x03A6, r_Phi), 'uni03A8': (0x03A8, r_Psi),
     # lowercase
-    'uni03BF': (0x03BF, 'o'), 'uni03B9': (0x03B9, 'ı'), 'uni03BD': (0x03BD, 'v'),
+    'uni03BF': (0x03BF, 'o'), 'uni03B9': (0x03B9, 'ı'), 'uni03BD': (0x03BD, r_nu),
     'uni03B3': (0x03B3, r_gamma), 'uni03B4': (0x03B4, r_delta), 'uni03B5': (0x03B5, r_epsilon),
     'uni03B6': (0x03B6, r_zeta), 'uni03B7': (0x03B7, r_eta), 'uni03B8': (0x03B8, r_theta),
     'uni03BA': (0x03BA, r_kappa), 'uni03BB': (0x03BB, r_lambda), 'uni03C1': (0x03C1, r_rho),
