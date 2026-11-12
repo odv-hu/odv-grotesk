@@ -1,0 +1,91 @@
+# Release: push a tag like v0.3.1 (e.g. from Fork: New Tag… → push), or run it by hand from the
+# Actions tab for a tag that has no release yet. VERSION in scripts/build.py must match the tag.
+# The workflow builds every style from the committed UFOs (build.py --no-draw) and publishes a
+# GitHub release with the woff2 and ttf files, a zip of both with the licence, and the FONTLOG
+# entry for that version as notes. It never replaces an existing release.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag without a release, e.g. v0.3.1
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - name: Validate tag syntax
+        run: |
+          if ! [[ "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::Tag $TAG is not of the form vMAJOR.MINOR.PATCH"; exit 1
+          fi
+          echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+
+      - name: Refuse to replace an existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$TAG" -R "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "::error::Release $TAG already exists. Published fonts are never replaced; release the next patch instead."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v5
+        with:
+          ref: refs/tags/${{ env.TAG }}
+
+      - name: Check the version in scripts/build.py
+        run: |
+          V=$(sed -n "s/^VERSION = '\(.*\)'$/\1/p" scripts/build.py)
+          [ "$V" = "$VERSION" ] || { echo "::error::scripts/build.py says $V but the tag is $TAG. Bump VERSION, commit, then tag."; exit 1; }
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build the fonts
+        run: |
+          pip install -r requirements.txt
+          python3 scripts/build.py --no-draw
+          mkdir -p dist
+          zip -qrX "dist/odvGrotesk-$VERSION.zip" fonts OFL.txt FONTLOG.txt README.md
+
+      - name: Release notes from FONTLOG.txt
+        run: |
+          awk -v v="$VERSION" '
+            $0 ~ "^" v " \\(" { on = 1; next }
+            on && /^[0-9]+\.[0-9]+\.[0-9]+ \(/ { exit }
+            on { print }
+          ' FONTLOG.txt > changes.txt
+          {
+            echo "## Changes"
+            echo
+            echo '```'
+            cat changes.txt
+            echo '```'
+            echo
+            echo "## Files"
+            echo
+            echo "- \`odvGrotesk-*.woff2\`: web fonts (odv.hu)"
+            echo "- \`odvGrotesk-*.ttf\`: macOS, Keynote and LuaLaTeX"
+            echo "- \`odvGrotesk-$VERSION.zip\`: both, with the licence and FONTLOG"
+            echo
+            echo "SIL Open Font License 1.1. Based on Schibsted Grotesk."
+          } > notes.md
+          cat notes.md
+
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$TAG" fonts/webfonts/*.woff2 fonts/ttf/*.ttf "dist/odvGrotesk-$VERSION.zip" \
+            --title "odv Grotesk $VERSION" --notes-file notes.md

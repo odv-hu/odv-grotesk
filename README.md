@@ -35,6 +35,15 @@ Still missing: ξ, ς and the rest of the maths symbols; they come when a text n
 Accented forms (Í, é, ą, ç…), IJ, the fi ligatures and Greek Ι are built from these glyphs and follow them.
 The changes are recipes in [`scripts/modify.py`](scripts/modify.py), applied to each style at build time.
 
+## Download
+
+Built fonts are on the [Releases page](https://github.com/odv-hu/odv-grotesk/releases), one release per version: `odvGrotesk-*.woff2` for the web, `odvGrotesk-*.ttf` for macOS and LuaLaTeX, or a zip with both.
+They are not kept in git.
+
+To release a version: set `VERSION` in `scripts/build.py`, add its entry to `FONTLOG.txt`, commit, then push the tag `v<version>`.
+[`.github/workflows/release.yml`](.github/workflows/release.yml) builds every style from the committed UFOs and publishes the release with the FONTLOG entry as notes.
+It never replaces an existing release.
+
 ## How it is made
 
 The new glyphs are drawn by [`scripts/draw.py`](scripts/draw.py) from recipes rather than by hand:
