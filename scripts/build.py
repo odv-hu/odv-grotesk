@@ -21,7 +21,7 @@ import draw  # noqa: E402
 import modify  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-VERSION = '0.3.2'
+VERSION = '0.3.3'
 FAMILY = 'odv Grotesk'
 PS_FAMILY = 'odvGrotesk'
 UPSTREAM_COMMIT = 'd485f61f105e1b3935f4d21dfb4d371359798603'  # Schibsted Grotesk 1.100
