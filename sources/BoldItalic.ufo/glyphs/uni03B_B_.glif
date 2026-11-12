@@ -1,18 +1,18 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <glyph name="uni03BB" format="2">
-  <advance width="979"/>
+  <advance width="998"/>
   <unicode hex="03BB"/>
   <outline>
     <contour>
-      <point x="339.2628479003906" y="1500.0" type="line"/>
-      <point x="591.1571044921875" y="660.0" type="line"/>
+      <point x="297.02362060546875" y="1500.0" type="line"/>
+      <point x="454.3019714355469" y="660.0" type="line"/>
       <point x="-87.56108093261719" y="0.0" type="line"/>
       <point x="190.06381225585938" y="0.0" type="line"/>
-      <point x="653.8361206054688" y="450.9820861816406" type="line"/>
-      <point x="789.073974609375" y="0.0" type="line"/>
-      <point x="1066.698974609375" y="0.0" type="line"/>
-      <point x="868.781982421875" y="660.0" type="line"/>
-      <point x="616.8877563476562" y="1500.0" type="line"/>
+      <point x="505.8585205078125" y="384.6442565917969" type="line"/>
+      <point x="577.8778076171875" y="0.0" type="line"/>
+      <point x="855.5027465820312" y="0.0" type="line"/>
+      <point x="731.9268798828125" y="660.0" type="line"/>
+      <point x="574.6484985351562" y="1500.0" type="line"/>
     </contour>
   </outline>
 </glyph>

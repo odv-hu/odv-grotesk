@@ -5,16 +5,16 @@
   <outline>
     <contour>
       <point x="164.0" y="1080.0" type="line"/>
-      <point x="536.656494140625" y="345.0" type="line"/>
+      <point x="421.8759460449219" y="345.0" type="line"/>
       <point x="-148.4581298828125" y="-390.0" type="line"/>
-      <point x="21.89288330078125" y="-390.0" type="line"/>
-      <point x="596.6717529296875" y="226.63037109375" type="line"/>
-      <point x="909.3130493164062" y="-390.0" type="line"/>
-      <point x="1079.6639404296875" y="-390.0" type="line"/>
-      <point x="707.0075073242188" y="345.0" type="line"/>
-      <point x="1392.1220703125" y="1080.0" type="line"/>
-      <point x="1221.7711181640625" y="1080.0" type="line"/>
-      <point x="646.9922485351562" y="463.36962890625" type="line"/>
+      <point x="21.89287567138672" y="-390.0" type="line"/>
+      <point x="474.9173583984375" y="193.8209686279297" type="line"/>
+      <point x="679.7518920898438" y="-390.0" type="line"/>
+      <point x="850.1029663085938" y="-390.0" type="line"/>
+      <point x="592.2269287109375" y="345.0" type="line"/>
+      <point x="1162.56103515625" y="1080.0" type="line"/>
+      <point x="992.2100219726562" y="1080.0" type="line"/>
+      <point x="539.185546875" y="496.1790466308594" type="line"/>
       <point x="334.35101318359375" y="1080.0" type="line"/>
     </contour>
   </outline>
