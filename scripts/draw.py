@@ -22,6 +22,7 @@ from geometry import (BUTT, JOIN_MITER, Skeleton, bounds, ellipse_ring, glyph_pa
                       transform, union)
 
 BIG = 10000
+LAMBDA_SLANT = 0.6          # share of the italic slant that λ keeps
 
 
 class Font:
@@ -80,6 +81,11 @@ class Font:
         x0, _, x1, _ = bounds(p)
         return move(p, lsb - self.shift - x0), round(x1 - x0 + lsb + rsb)
 
+    def ease(self, p, keep):
+        """Take back part of the italic slant so that `keep` of it is left once the
+        glyph is slanted; the baseline stays put. For glyphs made of diagonals."""
+        return transform(p, c=-(1 - keep) * math.tan(math.radians(self.italic)))
+
     def hspan(self, ch, y):
         """[(x, width), ...] of the ink crossed by a horizontal line at y."""
         cut = intersect(self.path(ch), rect(-BIG, y - 0.5, BIG, y + 0.5))
@@ -121,8 +127,12 @@ def r_sigma(f):
     o = f.bounds('o'); cx = (o[0] + o[2]) / 2
     top = o[3]                  # the bar sits on the bowl's overshoot, so they meet flush
     bowl = subtract(f.path('o'), rect(cx, top, BIG, BIG))
-    bar = rect(cx - 0.04 * (o[2] - o[0]), top - f.H, o[2] + 0.1 * (o[2] - o[0]), top)
-    return f.fit(union(bowl, bar), f.SBr, f.SBd * 0.6)
+    # The end of the bar is spaced like the end of t's bar, so σ's doesn't run into τ's;
+    # it gives up the difference in length, which leaves the bowl where it was.
+    tip = f.lsb('t')
+    reach = 0.1 * (o[2] - o[0]) - (tip - f.SBd * 0.6)
+    bar = rect(cx - 0.04 * (o[2] - o[0]), top - f.H, o[2] + reach, top)
+    return f.fit(union(bowl, bar), f.SBr, tip)
 
 
 def _lunate(f, y0, y1, width, v, h, bar=True):
@@ -180,16 +190,20 @@ def _pt(cx, cy, rx, ry, a):
 
 
 def r_lambda(f):
+    """λ: a long stroke from the ascender down to the right foot and a short left
+    leg. Neither stroke is upright, so the italic keeps only part of the slant:
+    slanted in full, the long stroke stands almost vertical and the right leg
+    reaches a third as far as in the upright."""
     d = f.D
     left, right = f.SBd + d / 2, f.SBd + 0.92 * (f.adv('v') - 2 * f.SBd) - d / 2
     top = (left + 0.2 * (right - left), f.asc)
     long_ = para(top[0], top[1], right, 0, d)
     t = 0.56                                   # where the short leg meets the long one
     meet = (top[0] + (right - top[0]) * t, f.asc * (1 - t))
-    foot = left + meet[1] * math.tan(math.radians(f.italic)) * 0.6  # keep the leg's angle once slanted
-    short = para(foot, 0, meet[0], meet[1], d)
+    short = para(left, 0, meet[0], meet[1], d)
     out = intersect(union(long_, short), rect(-BIG, 0, BIG, f.asc))
-    return f.fit(out, f.SBd, f.SBd)
+    out, adv = f.fit(out, f.SBd, f.SBd)      # spaced at its feet, which easing leaves in place
+    return f.ease(out, LAMBDA_SLANT), adv
 
 
 def r_chi(f):
