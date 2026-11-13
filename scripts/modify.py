@@ -4,13 +4,23 @@
     e  the end of the lower stroke is cut level instead of on a slant, so the
        opening between it and the bar is a horizontal slot.
     a  (two-storey forms only) the top of the bowl runs flat out from the stem
-       and turns down in a tighter corner, instead of sloping down to the left.
+       and turns down in a rounder corner, instead of sloping down to the left.
+       The corner is curvature-continuous (scripts/fair.py): the bend eases in
+       from the flat and out into the bowl, with no point where it visibly
+       starts (issue #19).
     c  both terminals cut level, like the e.
     i j  the stem a touch heavier than n's (I_STEM), the same in both, since
        they share the dot and usually stand together; í, ï, ĵ, ij, ι and the
        fi ligatures follow.
     p  the counter moved right until stem and bowl are equally thick at
        mid-height, which also widens the join of bowl and stem.
+    ! ? ¡ ¿ .  their dots squares like the dot of i, the same size; : ; … · ŀ
+       and the tabular forms are made of the full stop and follow.
+    , ‘ “  a square head the size of the full stop's dot and a straight tail
+       leaning left, cut level; ; ’ ” ‚ „ ʼ ŉ are made of the comma and follow.
+    z E F T Z L H  where the stems are thinned (see Contrast), the straight bars
+       back to Schibsted's proportion to the stem, so these letters are not darker
+       than their neighbours.
     ˙  the dot of i and j is a square whose top is level with the top of l.
        It is a little wider than the stem, relatively wider in light weights
        and narrower in heavy ones (as in Akkurat: 1.32 at Light, 1.14 at
@@ -34,24 +44,32 @@ slanted back after. The italic a is single-storey and is left as it is.
 Accented letters are composites of these glyphs and follow; their marks and
 the mark-attachment anchors are shifted where the I moved.
 """
+import array
 import math
 
 from fontTools.pens.cu2quPen import Cu2QuPen
 from fontTools.pens.recordingPen import DecomposingRecordingPen
+from fontTools.misc.roundTools import otRound
 from fontTools.pens.ttGlyphPen import TTGlyphPen
+from fontTools.ttLib.tables import ttProgram
+from fontTools.ttLib.tables._g_l_y_f import GlyphCoordinates
 
-from geometry import (bounds, glyph_path, intersect, polygon, rect, slant, subtract,
-                      union)
+from geometry import (bounds, glyph_path, intersect, move, polygon, rect, simplify, slant,
+                      subtract, transform, union)
 import pathops
 
-BIG = 10000
-CHANGED = ('I', 'ı', 'ȷ', 'e', 'a', 'c', 'p', 'uni0307', 'idieresis', 'f', 't')
+import fair
 
-# the a's bowl: where the flat top ends, as a share of the counter's width from
-# the left, and how full the corner is (0.55 is a circle, higher is squarer)
-A_FLAT = 0.32
-A_TENSION = 0.66
-A_TENSION_OUT = 0.58                         # the outside stays rounder, so the corner isn't heavy
+BIG = 10000
+CHANGED = ('I', 'ı', 'ȷ', 'e', 'a', 'c', 'p', 'uni0307', 'idieresis', 'f', 't', 'z', 'E', 'F', 'T', 'Z', 'L', 'H',
+           '!', '?', '¡', '¿', 'exclamdown.case', 'questiondown.case', '.', ',', '‘', '“')
+
+# the a's bowl: where the flat top starts, as a share of the counter's width from
+# the left, for the counter and for the outside. The outside reaches further, so
+# it is squarer than the counter, and starts 0.10 of the counter earlier, so the
+# two flats begin together (issue #19).
+A_FLAT_IN = 0.65
+A_FLAT_OUT = 0.75
 
 # the square dot: width in stems of dotless i, against the stem in thousandths of the em
 DOT_SIDE = ((50, 1.32), (85, 1.14), (125, 1.06))
@@ -62,7 +80,7 @@ MIN_ERODE = 5            # font units; below this a style is left alone
 
 # the stem of i and j, in stems of n (Akkurat's i is a little heavier than its n: 87 vs 85).
 # At 1.06 the i stood visibly heavier than l and the f of fi beside it (issue #5).
-I_STEM = 87 / 85
+I_STEM = 1.045            # 87/85 looked thin beside n and l, 1.06 too heavy (issue #5)
 
 # ---------- helpers ----------
 
@@ -90,14 +108,103 @@ def _vspan(p, x):
     return sorted((c.bounds[1], c.bounds[3]) for c in _contours(cut))
 
 
-def _corner(x_side, y_low, x_top, y_top, x_right, k):
+def _bez(kind, P, t):
+    """Point, first and second derivative of a line, quadratic or cubic at t."""
+    mt = 1 - t
+    if kind == 'l':
+        d = (P[1][0] - P[0][0], P[1][1] - P[0][1])
+        return (P[0][0] + t * d[0], P[0][1] + t * d[1]), d, (0.0, 0.0)
+    if kind == 'q':
+        pt = tuple(mt * mt * P[0][k] + 2 * mt * t * P[1][k] + t * t * P[2][k] for k in (0, 1))
+        d1 = tuple(2 * (mt * (P[1][k] - P[0][k]) + t * (P[2][k] - P[1][k])) for k in (0, 1))
+        d2 = tuple(2 * (P[2][k] - 2 * P[1][k] + P[0][k]) for k in (0, 1))
+        return pt, d1, d2
+    pt = tuple(mt ** 3 * P[0][k] + 3 * mt * mt * t * P[1][k] + 3 * mt * t * t * P[2][k]
+               + t ** 3 * P[3][k] for k in (0, 1))
+    d1 = tuple(3 * (mt * mt * (P[1][k] - P[0][k]) + 2 * mt * t * (P[2][k] - P[1][k])
+                    + t * t * (P[3][k] - P[2][k])) for k in (0, 1))
+    d2 = tuple(6 * (mt * (P[2][k] - 2 * P[1][k] + P[0][k]) + t * (P[3][k] - 2 * P[2][k] + P[1][k]))
+               for k in (0, 1))
+    return pt, d1, d2
+
+
+def _curvature(kind, P, t):
+    _, d1, d2 = _bez(kind, P, t)
+    sp = math.hypot(*d1)
+    return abs(d1[0] * d2[1] - d1[1] * d2[0]) / sp ** 3, sp
+
+
+def _bowl_side(contour, y_lo, y_hi):
+    """The leftmost point of a contour between two heights, where the a's corner
+    takes over from the bowl, with the bowl's curvature there and the rate it
+    changes at going up (so the corner can continue both). Read from the
+    outline's own segments; a point within 0.1 % of a segment's end is the node."""
+    segs = _segments(contour)
+    best = None
+    for i, (kind, P) in enumerate(segs):
+        ts = [0.0, 1.0]
+        if kind == 'q':
+            den = P[0][0] - 2 * P[1][0] + P[2][0]
+            if abs(den) > 1e-9:
+                ts.append((P[0][0] - P[1][0]) / den)
+        elif kind == 'c':                       # x'(t) = 0: a t^2 + b t + c
+            a = -P[0][0] + 3 * P[1][0] - 3 * P[2][0] + P[3][0]
+            b = 2 * (P[0][0] - 2 * P[1][0] + P[2][0])
+            c = P[1][0] - P[0][0]
+            if abs(a) > 1e-9:
+                disc = b * b - 4 * a * c
+                if disc >= 0:
+                    ts += [(-b + sg * math.sqrt(disc)) / (2 * a) for sg in (1, -1)]
+            elif abs(b) > 1e-9:
+                ts.append(-c / b)
+        for t in ts:
+            if not 0 <= t <= 1:
+                continue
+            t = 0.0 if t < 1e-3 else 1.0 if t > 1 - 1e-3 else t
+            pt = _bez(kind, P, t)[0]
+            if y_lo <= pt[1] <= y_hi and (best is None or pt[0] < best[0][0] - 1e-6):
+                best = (pt, i, t)
+    pt, i, t = best
+    # the piece of outline just below that point: in the same segment, or in a neighbour
+    cands = [(i, t)]
+    if t == 0.0:
+        cands.append(((i - 1) % len(segs), 1.0))
+    if t == 1.0:
+        cands.append(((i + 1) % len(segs), 0.0))
+    below = []
+    for j, tj in cands:
+        kind, P = segs[j]
+        for step in (-0.01, 0.01):
+            if 0 <= tj + step <= 1:
+                y = _bez(kind, P, tj + step)[0][1]
+                if y < pt[1]:
+                    below.append((y, j, tj, step))
+    _, j, tj, step = min(below)
+    kind, P = segs[j]
+    if kind == 'l':
+        return pt, 0.0, 0.0
+    k0, sp = _curvature(kind, P, tj)
+    k1, _ = _curvature(kind, P, tj + step * 0.1)
+    return pt, k0, (k0 - k1) / (abs(step) * 0.1 * sp)
+
+
+def _flat_start(contour, y):
+    """Left end of the contour's horizontal straight edge at height y that runs
+    furthest right (the top of the a's bowl, into the stem)."""
+    lines = [(max(P[0][0], P[1][0]), min(P[0][0], P[1][0])) for kind, P in _segments(contour)
+             if kind == 'l' and abs(P[0][1] - y) < 1e-6 and abs(P[1][1] - y) < 1e-6]
+    return max(lines)[1]
+
+
+def _corner(x_side, y_low, x_top, y_top, x_right, k_side, dk_side):
     """Region under a rounded corner: up the side from (x_side, y_low), round
-    into the top at (x_top, y_top), flat to x_right, down and back."""
+    into the top at (x_top, y_top), flat to x_right, down and back. The corner
+    is fair.corner: it continues the side's curvature and its rate of change,
+    and eases out to none into the top."""
     p = pathops.Path()
     p.moveTo(x_side, y_low)
-    p.cubicTo(x_side, y_low + k * (y_top - y_low),
-              x_top - k * (x_top - x_side), y_top,
-              x_top, y_top)
+    for seg in fair.corner(x_top - x_side, y_top - y_low, k_side, dk_side):
+        p.cubicTo(*[v for x, y in seg for v in (x + x_side, y + y_low)])
     p.lineTo(x_right, y_top)
     p.lineTo(x_right, y_low)
     p.close()
@@ -245,6 +352,87 @@ def r_dot(f):
     return _square_dots(f, f.path('uni0307'), -BIG), 0, 0
 
 
+def _square_points(f, ch):
+    """The round dot of ! ? ¡ ¿ . made a square like the dot of i: the same size,
+    on the same vertical centre line; on the baseline where the dot sat on it."""
+    side = _dot_side(f)
+    stem = f.V
+    out = pathops.Path()
+    for c in _contours(f.path(ch)):
+        x0, y0, x1, y1 = c.bounds
+        w, h = x1 - x0, y1 - y0
+        if 0.85 < w / h < 1.15 and w < 2.2 * stem:
+            mx, my = (x0 + x1) / 2, (y0 + y1) / 2
+            bottom = 0 if abs(y0) < 0.25 * stem else my - side / 2
+            c = rect(mx - side / 2, bottom, mx + side / 2, bottom + side)
+        out = union(out, c)
+    return out, f.adv(ch), 0
+
+
+BARRED = ('z', 'E', 'F', 'T', 'Z', 'L', 'H')
+BAR_SAMPLES = (0.06, 0.12, 0.5, 0.75, 0.88, 0.94)   # where across the letter to look for bars
+
+
+def r_bars(f, ch):
+    """The straight horizontal bars of z E F T Z L H back to Schibsted's proportion
+    to the stem once the contrast correction has thinned the stems: the bars are
+    horizontal and not thinned, so in Bold they came out as heavy as the stems.
+    A bar on the baseline or at the top keeps its outer edge and its inner edge
+    moves in; a middle bar thins about its centre line. Corners slide along a
+    slanted neighbour (the diagonal of z and Z), so it keeps its angle."""
+    e = getattr(f, 'erode', 0) or 0
+    if e <= 0:
+        return None
+    p = f.path(ch)
+    segs = [(k, P) for c in _contours(p) for k, P in _segments(c)]
+    if any(k != 'l' for k, _ in segs):
+        return None                            # only straight letters
+    x0, y0, x1, y1 = p.bounds
+    h = y1 - y0
+    levels = {round(P[0][1], 3) for k, P in segs if abs(P[0][1] - P[1][1]) < 1e-6}
+    k = (f.V - 2 * e) / f.V
+    moves = {}
+    for fx in BAR_SAMPLES:
+        for a, b in _vspan(p, x0 + fx * (x1 - x0)):
+            t = b - a
+            if t > 0.4 * h or round(a, 3) not in levels or round(b, 3) not in levels:
+                continue                       # a stem, or not a straight bar
+            d = t * (1 - k)
+            if abs(b - y1) < 0.5:              # at the top: the lower edge moves up
+                moves[round(a, 3)] = a + d
+            elif abs(a - y0) < 0.5:            # on the baseline: the upper edge moves down
+                moves[round(b, 3)] = b - d
+            else:                              # in the middle: both, about its centre
+                moves[round(a, 3)] = a + d / 2
+                moves[round(b, 3)] = b - d / 2
+    if not moves:
+        return None
+    out = pathops.Path()
+    pen = out.getPen()
+    for c in _contours(p):
+        pts = [P[0] for kk, P in _segments(c)]
+        n = len(pts)
+        new = []
+        for i, q in enumerate(pts):
+            y_new = moves.get(round(q[1], 3))
+            if y_new is None:
+                new.append(q)
+                continue
+            slanted = [r for r in (pts[i - 1], pts[(i + 1) % n])
+                       if abs(r[1] - q[1]) > 0.5 and abs(r[0] - q[0]) > 0.5]
+            if slanted:                        # slide along the diagonal
+                r = slanted[0]
+                t = (y_new - q[1]) / (r[1] - q[1])
+                new.append((q[0] + t * (r[0] - q[0]), y_new))
+            else:
+                new.append((q[0], y_new))
+        pen.moveTo(new[0])
+        for q in new[1:]:
+            pen.lineTo(q)
+        pen.closePath()
+    return out, f.adv(ch), 0
+
+
 def r_idieresis(f):
     p = _square_dots(f, f.path('idieresis'), f.xh)
     d = _i_widen(f)
@@ -281,23 +469,286 @@ def r_t(f):
 
 # ---------- contrast ----------
 
+BLEND_SPAN = 2.5         # an extreme's blend reaches this many e to either side
+ROUND_CROSSINGS = False  # round off the short flats at inside corners that involve a curve
+ROUND_SPAN = 1.5         # how far back (in e) a rounded crossing starts on each side
+
+
+def _casteljau(P, u):
+    """Split a Bezier at u (any u, also outside 0..1): the parts before and after."""
+    pts = [tuple(q) for q in P]
+    left, right = [pts[0]], [pts[-1]]
+    while len(pts) > 1:
+        pts = [((1 - u) * a[0] + u * b[0], (1 - u) * a[1] + u * b[1]) for a, b in zip(pts, pts[1:])]
+        left.append(pts[0])
+        right.append(pts[-1])
+    return left, right[::-1]
+
+
+def _meet_line(kind, Q, L0, t, at_end):
+    """The curve Q cut, or carried on, at its end (at_end) or start to where it
+    crosses the line through L0 along t; None if it does not get there."""
+    def g(u):
+        pt = _bez(kind, Q, u)[0]
+        return (pt[0] - L0[0]) * t[1] - (pt[1] - L0[1]) * t[0]
+    u = 1.0 if at_end else 0.0
+    for _ in range(40):
+        gu = g(u)
+        h = 1e-6
+        dg = (g(u + h) - gu) / h
+        if abs(dg) < 1e-12:
+            return None
+        step = gu / dg
+        u -= step
+        if abs(step) < 1e-10:
+            break
+    if not (-0.5 < u < 1.5) or abs(g(u)) > 1e-3:
+        return None
+    left, right = _casteljau(Q, u)
+    return left if at_end else right
+
+
+def _meet_curves(ka, A, kb, B):
+    """Parameters (u, v) where curve A near its end crosses curve B near its start,
+    carried on past the ends if need be; None if they do not meet."""
+    u, v = 1.0, 0.0
+    for _ in range(50):
+        pa, pb = _bez(ka, A, u)[0], _bez(kb, B, v)[0]
+        r = (pa[0] - pb[0], pa[1] - pb[1])
+        if math.hypot(*r) < 1e-7:
+            break
+        _, da, _ = _bez(ka, A, u)
+        _, db, _ = _bez(kb, B, v)
+        det = -da[0] * db[1] + da[1] * db[0]   # Jacobian [da, -db]
+        if abs(det) < 1e-12:
+            return None
+        du = (-r[0] * -db[1] + r[1] * -db[0]) / det
+        dv = (-da[0] * r[1] + da[1] * r[0]) / det
+        u, v = u + du, v + dv
+    pa, pb = _bez(ka, A, u)[0], _bez(kb, B, v)[0]
+    if math.hypot(pa[0] - pb[0], pa[1] - pb[1]) > 1e-3 or not (0.2 < u < 1.6 and -0.6 < v < 0.8):
+        return None
+    return u, v
+
+
+def _h_extremes(kind, P):
+    """Parameters inside a curve where its tangent is horizontal."""
+    ys = [q[1] for q in P]
+    if kind == 'q':
+        den = ys[0] - 2 * ys[1] + ys[2]
+        ts = [(ys[0] - ys[1]) / den] if abs(den) > 1e-12 else []
+    elif kind == 'c':
+        a = -ys[0] + 3 * ys[1] - 3 * ys[2] + ys[3]
+        b = 2 * (ys[0] - 2 * ys[1] + ys[2])
+        c = ys[1] - ys[0]
+        if abs(a) > 1e-12:
+            disc = b * b - 4 * a * c
+            ts = [(-b + sg * math.sqrt(disc)) / (2 * a) for sg in (1, -1)] if disc >= 0 else []
+        else:
+            ts = [-c / b] if abs(b) > 1e-12 else []
+    else:
+        ts = []
+    return sorted(t for t in ts if 1e-3 < t < 1 - 1e-3)
+
+
+def _jet(kind, P, u):
+    """Point, unit tangent and signed curvature at u."""
+    pt, d1, d2 = _bez(kind, P, u)
+    sp = math.hypot(*d1)
+    if sp < 1e-9:
+        u2 = u + (1e-4 if u < 0.5 else -1e-4)
+        pt2, d1, d2 = _bez(kind, P, u2)
+        sp = math.hypot(*d1)
+    return pt, (d1[0] / sp, d1[1] / sp), (d1[0] * d2[1] - d1[1] * d2[0]) / sp ** 3
+
+
+def _tangent_at(kind, P, at_end):
+    return _jet(kind, P, 1.0 if at_end else 0.0)[1]
+
+
 def erode_x(p, e):
     """Thin `p` horizontally by `e` on each side: verticals lose 2e, horizontals
-    nothing. Exact: a point stays if the horizontal segment of half-length e
-    around it lies wholly inside, so the outline minus the region swept by its
-    own edges moving e left and right. Each edge is split where it turns
-    vertically, so every piece sweeps a simple ribbon."""
-    sweep = pathops.Path()
-    for kind, seg in _segments(p):
-        pieces = ([(kind, seg)] if kind == 'l' else
-                  [('q', q) for q in _split_quad_y(*seg)] if kind == 'q' else
-                  [('c', c) for c in _split_cubic_y(*seg)])
-        for k, sg in pieces:
-            r = _ribbon(k, sg, e)
-            if r is not None:
-                r.draw(sweep.getPen())
-    sweep.simplify(fix_winding=True, clockwise=False)
-    return subtract(p, sweep)
+    nothing. Each piece of outline between horizontal tangents moves sideways by
+    e, inward, as a whole, so its shape and curvature are kept exactly and the
+    weights are those of thinning by e everywhere (the region a horizontal segment
+    of half-length e fits in). Where that would break the outline (issue #19):
+
+      - at the top and bottom of a round the two halves, moved towards each
+        other, would cross in a point, and at the top and bottom of a counter,
+        moved apart, they would leave a flat: there both halves are cut back about
+        BLEND_SPAN e from the extreme and joined by a curve that matches their
+        position, direction and curvature;
+      - where a curve meets a slanted straight edge (a terminal cut), the edge
+        moves by its own e and the curve is cut or carried on to meet it, so the
+        cut keeps its angle;
+      - a horizontal straight edge just follows the pieces at its ends."""
+    p = simplify(p)                            # no overlaps; ink to the left of every contour
+    out = pathops.Path()
+    pen = out.getPen()
+    for contour in _contours(p):
+        pieces = []
+        for kind, P in _segments(contour):    # split curves at their horizontal tangents
+            P = [tuple(q) for q in P]
+            last = 0.0
+            for t in _h_extremes(kind, P):
+                u = (t - last) / (1 - last)
+                a, P = _casteljau(P, u)
+                pieces.append((kind, a))
+                last = t
+            pieces.append((kind, P))
+        n = len(pieces)
+        if n == 0:
+            continue
+
+        def shift_of(piece):
+            kind, P = piece
+            _, t, _ = _jet(kind, P, 0.5)
+            if abs(t[1]) < 1e-9:
+                return None                    # horizontal: follows its neighbours
+            return -e if t[1] > 0 else e       # outward normal (ty, -tx)
+
+        sh = [shift_of(pc) for pc in pieces]
+        moved = [(k, [(q[0] + (s or 0.0), q[1]) for q in P]) for (k, P), s in zip(pieces, sh)]
+        blends = {}                            # node index -> cubic joining the two sides
+        for i in range(n):
+            a, b = (i - 1) % n, i
+            sa, sb = sh[a], sh[b]
+            ka, Pa = moved[a]
+            kb, Pb = moved[b]
+            if sa is None and sb is None:
+                continue
+            if sa is None or sb is None:       # a horizontal edge follows the other side
+                if sa is None:
+                    Pa[-1] = Pb[0]
+                else:
+                    Pb[0] = Pa[-1]
+                continue
+            if sa == sb:
+                continue
+            ta = _tangent_at(pieces[a][0], pieces[a][1], True)
+            tb = _tangent_at(pieces[b][0], pieces[b][1], False)
+            cr = ta[0] * tb[1] - ta[1] * tb[0]
+            dot = ta[0] * tb[0] + ta[1] * tb[1]
+            if abs(cr) < 0.035 and dot > 0 and ka != 'l' and kb != 'l':
+                # an extreme of a round or a counter: cut both sides back, blend
+                D = BLEND_SPAN * e
+                cut = []
+                for k, P, at_end in ((ka, Pa, True), (kb, Pb, False)):
+                    x_node = P[-1][0] if at_end else P[0][0]
+                    span = abs(P[-1][0] - P[0][0])
+                    want = min(D, 0.6 * span)
+                    lo, hi = (0.0, 1.0)
+                    for _ in range(50):        # parameter at that horizontal distance
+                        mid = (lo + hi) / 2
+                        dx = abs(_bez(k, P, mid)[0][0] - x_node)
+                        if at_end:
+                            lo, hi = (mid, hi) if dx > want else (lo, mid)
+                        else:
+                            lo, hi = (lo, mid) if dx > want else (mid, hi)
+                    cut.append((lo + hi) / 2)
+                ua, ub = cut
+                Pa2 = _casteljau(Pa, ua)[0]
+                Pb2 = _casteljau(Pb, ub)[1]
+                p0, t0, k0 = _jet(ka, Pa2, 1.0)
+                p3, t1, k1 = _jet(kb, Pb2, 0.0)
+                chord = math.hypot(p3[0] - p0[0], p3[1] - p0[1])
+                a0, a1 = fair.cubic_g2(p0, t0, k0, p3, t1, k1, chord / 3)
+                blends[i] = ('c', ((p0[0] + a0 * t0[0], p0[1] + a0 * t0[1]),
+                                   (p3[0] - a1 * t1[0], p3[1] - a1 * t1[1]), p3))
+                moved[a] = (ka, Pa2)
+                moved[b] = (kb, Pb2)
+                continue
+            # a corner whose sides move differently
+            if cr < 0:
+                # an inside corner (a notch, a crotch): the white widens by e on
+                # each side, so the two moved sides are joined by a short flat,
+                # or, where a curve is involved and ROUND_CROSSINGS is on, both
+                # sides are cut back a little and joined by a smooth curve
+                if ROUND_CROSSINGS and (ka != 'l' or kb != 'l'):
+                    D = ROUND_SPAN * e
+                    us = []
+                    for k, P, at_end in ((ka, Pa, True), (kb, Pb, False)):
+                        end_pt = P[-1] if at_end else P[0]
+                        want = min(D, 0.45 * math.hypot(P[-1][0] - P[0][0], P[-1][1] - P[0][1]))
+                        lo, hi = 0.0, 1.0
+                        for _ in range(50):
+                            mid = (lo + hi) / 2
+                            q = _bez(k, P, mid)[0]
+                            dd = math.hypot(q[0] - end_pt[0], q[1] - end_pt[1])
+                            if at_end:
+                                lo, hi = (mid, hi) if dd > want else (lo, mid)
+                            else:
+                                lo, hi = (lo, mid) if dd > want else (mid, hi)
+                        us.append((lo + hi) / 2)
+                    Pa2 = _casteljau(Pa, us[0])[0]
+                    Pb2 = _casteljau(Pb, us[1])[1]
+                    p0, t0, k0 = _jet(ka, Pa2, 1.0)
+                    p3, t1, k1 = _jet(kb, Pb2, 0.0)
+                    chord = math.hypot(p3[0] - p0[0], p3[1] - p0[1])
+                    a0, a1 = fair.cubic_g2(p0, t0, k0, p3, t1, k1, chord / 3)
+                    blends[i] = ('c', ((p0[0] + a0 * t0[0], p0[1] + a0 * t0[1]),
+                                       (p3[0] - a1 * t1[0], p3[1] - a1 * t1[1]), p3))
+                    moved[a] = (ka, Pa2)
+                    moved[b] = (kb, Pb2)
+                else:
+                    blends[i] = ('l', Pb[0])
+                continue
+            if ka == 'l' and kb == 'l':        # where the two moved edges cross
+                A0, B0 = Pa[-1], Pb[0]
+                den = ta[0] * tb[1] - ta[1] * tb[0]
+                if abs(den) > 1e-9:
+                    u = ((B0[0] - A0[0]) * tb[1] - (B0[1] - A0[1]) * tb[0]) / den
+                    X = (A0[0] + u * ta[0], A0[1] + u * ta[1])
+                else:
+                    X = ((A0[0] + B0[0]) / 2, (A0[1] + B0[1]) / 2)
+                Pa[-1] = X
+                Pb[0] = X
+            elif ka == 'l' or kb == 'l':       # the curve meets the moved straight edge
+                if ka == 'l':
+                    Q2 = _meet_line(kb, Pb, Pa[0], ta, False)
+                    if Q2 is not None:
+                        moved[b] = (kb, Q2)
+                        Pa[-1] = Q2[0]
+                    else:
+                        Pb[0] = Pa[-1]
+                else:
+                    Q2 = _meet_line(ka, Pa, Pb[0], tb, True)
+                    if Q2 is not None:
+                        moved[a] = (ka, Q2)
+                        Pb[0] = Q2[-1]
+                    else:
+                        Pa[-1] = Pb[0]
+            else:                              # two curves (a crotch): cut both where they cross
+                uv = _meet_curves(ka, Pa, kb, Pb)
+                if uv is not None:
+                    moved[a] = (ka, _casteljau(Pa, uv[0])[0])
+                    moved[b] = (kb, _casteljau(Pb, uv[1])[1])
+                    moved[b][1][0] = moved[a][1][-1]
+                else:
+                    X = ((Pa[-1][0] + Pb[0][0]) / 2, (Pa[-1][1] + Pb[0][1]) / 2)
+                    Pa[-1] = X
+                    Pb[0] = X
+        def join(bl):
+            if bl[0] == 'c':
+                pen.curveTo(*bl[1])
+            else:
+                pen.lineTo(bl[1])
+
+        pen.moveTo(moved[0][1][0])
+        for i in range(n):
+            kind, Q = moved[i]
+            if i in blends and i != 0:
+                join(blends[i])
+            if kind == 'l':
+                pen.lineTo(Q[1])
+            elif kind == 'q':
+                pen.qCurveTo(Q[1], Q[2])
+            else:
+                pen.curveTo(Q[1], Q[2], Q[3])
+        if 0 in blends:
+            join(blends[0])
+        pen.closePath()
+    return simplify(out)
 
 
 def _segments(p):
@@ -335,84 +786,13 @@ def _segments(p):
     return pen.out
 
 
-def _sh(pt, d):
-    return (pt[0] + d, pt[1])
-
-
-def _ribbon(kind, seg, e):
-    a, b = seg[0], seg[-1]
-    if abs(a[1] - b[1]) < 1e-6 and all(abs(q[1] - a[1]) < 1e-6 for q in seg):
-        return None                                   # horizontal: sweeps no area
-    r = pathops.Path()
-    pen = r.getPen()
-    pen.moveTo(_sh(a, -e))
-    if kind == 'l':
-        pen.lineTo(_sh(b, -e))
-        pen.lineTo(_sh(b, e))
-        pen.lineTo(_sh(a, e))
-    elif kind == 'q':
-        pen.qCurveTo(_sh(seg[1], -e), _sh(b, -e))
-        pen.lineTo(_sh(b, e))
-        pen.qCurveTo(_sh(seg[1], e), _sh(a, e))
-    else:
-        pen.curveTo(_sh(seg[1], -e), _sh(seg[2], -e), _sh(b, -e))
-        pen.lineTo(_sh(b, e))
-        pen.curveTo(_sh(seg[2], e), _sh(seg[1], e), _sh(a, e))
-    pen.closePath()
-    r.simplify(fix_winding=True, clockwise=False)
-    return r
-
-
-def _lerp(a, b, t):
-    return (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)
-
-
-def _split_quad_y(a, c, b):
-    d = a[1] - 2 * c[1] + b[1]
-    if abs(d) > 1e-9:
-        t = (a[1] - c[1]) / d
-        if 1e-4 < t < 1 - 1e-4:
-            ac, cb = _lerp(a, c, t), _lerp(c, b, t)
-            m = _lerp(ac, cb, t)
-            return [(a, ac, m), (m, cb, b)]
-    return [(a, c, b)]
-
-
-def _split_cubic_y(p0, p1, p2, p3):
-    # roots of the y-derivative
-    a = -p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]
-    b = 2 * (p0[1] - 2 * p1[1] + p2[1])
-    c = p1[1] - p0[1]
-    ts = []
-    if abs(a) < 1e-9:
-        if abs(b) > 1e-9:
-            ts = [-c / b]
-    else:
-        disc = b * b - 4 * a * c
-        if disc >= 0:
-            r = math.sqrt(disc)
-            ts = [(-b - r) / (2 * a), (-b + r) / (2 * a)]
-    ts = sorted(t for t in ts if 1e-4 < t < 1 - 1e-4)
-    out, seg, t0 = [], (p0, p1, p2, p3), 0.0
-    for t in ts:
-        u = (t - t0) / (1 - t0)
-        q0, q1, q2, q3 = seg
-        a1, b1, c1 = _lerp(q0, q1, u), _lerp(q1, q2, u), _lerp(q2, q3, u)
-        d1, e1 = _lerp(a1, b1, u), _lerp(b1, c1, u)
-        m = _lerp(d1, e1, u)
-        out.append((q0, a1, d1, m))
-        seg, t0 = (m, e1, c1, q3), t
-    out.append(seg)
-    return out
-
-
 def _inside(a, b):
     return a[0] >= b[0] and a[1] >= b[1] and a[2] <= b[2] and a[3] <= b[3]
 
 
-def _erode_glyph(p, e, stem):
+def _erode_glyph(p, e, stem, italic=0):
     cs = _contours(p)
-    bbs = [c.bounds for c in cs]
+    bbs = [slant(c, -italic).bounds if italic else c.bounds for c in cs]   # judged upright
     dots = []
     for i, (c, b) in enumerate(zip(cs, bbs)):
         w, h = b[2] - b[0], b[3] - b[1]
@@ -434,13 +814,16 @@ def erosion(f):
 def _erode_all(tt, f, e):
     gs = tt.getGlyphSet()
     glyf, hmtx = tt['glyf'], tt['hmtx']
+    skip = {f.name(ch) for ch in NO_THIN}
     n = 0
     for name in tt.getGlyphOrder():
         g = glyf[name]
-        if name == '.notdef' or g.isComposite() or g.numberOfContours <= 0:
+        if name == '.notdef' or name in skip or g.isComposite() or g.numberOfContours <= 0:
             continue
-        p = glyph_path(gs, name, unslant=f.italic)
-        _put(tt, name, slant(_erode_glyph(p, e, f.V), f.italic), hmtx[name][0])
+        # thinned as drawn: a horizontal shift is the same slanted or not, and the
+        # italic's rounds have their vertical extremes as drawn, not un-slanted
+        p = glyph_path(gs, name)
+        _put(tt, name, _erode_glyph(p, e, f.V, f.italic), hmtx[name][0])
         n += 1
     return n
 
@@ -486,12 +869,12 @@ def _near(p, q, tol=0.6):
 
 
 def r_a(f):
-    """Flatten the top of the bowl: flat out from the stem, then a tighter corner."""
+    """Flatten the top of the bowl: flat out from the stem, then a fair corner."""
     a = f.path('a')
     cs = _contours(a)
     if len(cs) != 2:
         return None                            # single-storey (italic): leave it
-    inner = min(cs, key=_area)
+    inner, outer = min(cs, key=_area), max(cs, key=_area)
     ix0, iy0, ix1, iy1 = inner.bounds          # counter
     ox0 = a.bounds[0]                          # outside of the bowl's left side
     # the bowl's top stroke just left of the stem: bottom is the counter top
@@ -499,40 +882,42 @@ def r_a(f):
     if not spans:
         return None
     y_top = spans[0][1]
-    # where the counter is widest on the left, and the bowl's outside there
-    ys = [iy0 + (iy1 - iy0) * t / 100 for t in range(20, 81)]
-    y_mid = min(ys, key=lambda y: _hspan(inner, y)[0][0])
-    # where both edges of the top stroke are still flat, going left from the stem
-    x_flat = ix1
-    x = ix1 - 4
-    while x > ix0:
-        v = _vspan(a, x)
-        top = [s for s in v if s[0] > iy1 - 40 and s[0] < iy1 + 1]
-        if not top or abs(top[0][0] - iy1) > 0.5 or abs(top[0][1] - y_top) > 0.5:
-            break
-        x_flat = x
-        x -= 2
-    xi = _hspan(inner, y_mid)[0][0]
-    xo = _hspan(a, y_mid)[0][0]
-    x_ti = ix0 + A_FLAT * (ix1 - ix0)          # counter's flat top starts here
-    x_to = x_ti - 0.10 * (ix1 - ix0)           # outside starts turning a little earlier
-    x_ti, x_to = min(x_ti, x_flat), min(x_to, x_flat)
-    box = rect(ox0 - 10, y_mid, x_flat, y_top)
-    q_out = _corner(xo, y_mid, x_to, y_top, x_flat, A_TENSION_OUT)
-    q_in = _corner(xi, y_mid, x_ti, iy1, x_flat, A_TENSION)
-    out = union(subtract(a, box), subtract(q_out, q_in))
+    # where each edge's corner takes over from the bowl: its leftmost point
+    y_lo, y_hi = iy0 + 0.2 * (iy1 - iy0), iy0 + 0.8 * (iy1 - iy0)
+    s_in, k_in, dk_in = _bowl_side(inner, y_lo, y_hi)
+    s_out, k_out, dk_out = _bowl_side(outer, y_lo, y_hi)
+    # and where it hands over to the flat top: where the straight edge begins
+    xf_in = _flat_start(inner, iy1)
+    xf_out = _flat_start(outer, y_top)
+    x_ti = min(ix0 + A_FLAT_IN * (ix1 - ix0), xf_in)              # counter's flat top starts here
+    x_to = min(ix0 + (A_FLAT_OUT - 0.10) * (ix1 - ix0), xf_out)   # and the outside's
+    # each edge is redone on its own filled contour, cut exactly at its own nodes
+    o = union(subtract(outer, rect(ox0 - 10, s_out[1], xf_out, y_top)),
+              _corner(s_out[0], s_out[1], x_to, y_top, xf_out, k_out, dk_out))
+    c = union(subtract(inner, rect(ix0 - 10, s_in[1], xf_in, iy1)),
+              _corner(s_in[0], s_in[1], x_ti, iy1, xf_in, k_in, dk_in))
+    out = subtract(o, c)
     return out, f.adv('a'), 0
 
 
 RECIPES = {'I': r_I, 'ı': r_dotlessi, 'ȷ': r_dotlessj, 'p': r_p, 'e': r_e, 'a': r_a, 'c': r_c, 'uni0307': r_dot,
            'idieresis': r_idieresis, 'f': r_f, 't': r_t}
+for _ch in BARRED:
+    RECIPES[_ch] = (lambda ch: lambda f: r_bars(f, ch))(_ch)
+for _ch in ('!', '?', '¡', '¿', 'exclamdown.case', 'questiondown.case', '.'):
+    RECIPES[_ch] = (lambda ch: lambda f: _square_points(f, ch))(_ch)
+RECIPES[','] = lambda f: r_comma(f)
+for _ch in ('‘', '“'):
+    RECIPES[_ch] = (lambda ch: lambda f: r_quoteleft(f, ch))(_ch)
 
 
 # ---------- applying to the TTFont ----------
 
 def _tidy(path):
     """Boolean operations leave flat runs as strings of tiny curves; turn curves
-    with a control point on their chord into lines and merge collinear lines."""
+    with their control points on their chord into lines and merge collinear lines.
+    Only truly straight ones: a gentle curve flattened into a line leaves a kink
+    at each end (issue #19)."""
     from fontTools.pens.recordingPen import RecordingPen
     rec = RecordingPen()
     path.draw(rec)
@@ -543,7 +928,7 @@ def _tidy(path):
 
     def flat(a, b, c):
         d = math.hypot(c[0] - a[0], c[1] - a[1]) or 1
-        return abs(cross(a, b, c)) / d < 0.3
+        return abs(cross(a, b, c)) / d < 0.02
 
     cur = start = None
     for op, args in rec.value:
@@ -573,12 +958,206 @@ def _last_pt(ops):
             return args[-1]
 
 
+SMOOTH_DEG = 2.0         # nodes turning less than this are meant to be smooth
+
+
+def round_smooth(g):
+    """Round a glyph's float coordinates to integers, placing each smooth node
+    (turning less than SMOOTH_DEG, e.g. where two cubics met before conversion)
+    at the nearby integer point that keeps it smoothest. Rounding each point on
+    its own turns a node between short handles by a degree or more, a visible
+    kink (issue #19); a horizontal or vertical neighbour stays so."""
+    coords = [tuple(c) for c in g.coordinates]
+    flags = list(g.flags)
+    out = [(otRound(x), otRound(y)) for x, y in coords]
+    start = 0
+    for end in g.endPtsOfContours:
+        idx = list(range(start, end + 1))
+        n = len(idx)
+        for k, i in enumerate(idx):
+            if not flags[i] & 1 or n < 3:
+                continue
+            a, b = idx[k - 1], idx[(k + 1) % n]
+            pa, pn, pb = coords[a], coords[i], coords[b]
+            u = (pn[0] - pa[0], pn[1] - pa[1])
+            v = (pb[0] - pn[0], pb[1] - pn[1])
+            lu, lv = math.hypot(*u), math.hypot(*v)
+            if lu < 1e-6 or lv < 1e-6:
+                continue
+            if (flags[a] & 1) and (flags[b] & 1):
+                continue                         # between two lines: a corner or a straight run
+            turn = math.degrees(abs(math.atan2(u[0] * v[1] - u[1] * v[0], u[0] * v[0] + u[1] * v[1])))
+            if turn >= SMOOTH_DEG:
+                continue
+            ra, rb = out[a], out[b]
+            # keep a horizontal or vertical neighbour edge so
+            keep_x = abs(u[0]) < 1e-6 or abs(v[0]) < 1e-6
+            keep_y = abs(u[1]) < 1e-6 or abs(v[1]) < 1e-6
+            best, cost = out[i], None
+            for dx in (-2, -1, 0, 1, 2):
+                for dy in (-2, -1, 0, 1, 2):
+                    c = (otRound(pn[0]) + dx, otRound(pn[1]) + dy)
+                    if (keep_x and dx) or (keep_y and dy):
+                        continue
+                    d = math.hypot(c[0] - pn[0], c[1] - pn[1])
+                    if d > 1.6:
+                        continue
+                    u2 = (c[0] - ra[0], c[1] - ra[1])
+                    v2 = (rb[0] - c[0], rb[1] - c[1])
+                    if not any(u2) or not any(v2):
+                        continue
+                    t = math.degrees(abs(math.atan2(u2[0] * v2[1] - u2[1] * v2[0], u2[0] * v2[0] + u2[1] * v2[1])))
+                    k2 = t + 0.15 * d
+                    if cost is None or k2 < cost:
+                        best, cost = c, k2
+            out[i] = best
+        start = end + 1
+    g.coordinates = GlyphCoordinates(out)
+
+
+# ---------- smoothing what Schibsted left (issue #19) ----------
+
+FAIR_KINK = (0.5, 10.0)  # smooth points turning this much (degrees) are straightened
+FAIR_STEP = 2.5          # curvature steps this big (times the x-height) are evened out
+
+
+def _quad_k(p0, c, p1, at_end):
+    """Signed curvature of a quadratic at one end."""
+    d1 = (2 * (p1[0] - c[0]), 2 * (p1[1] - c[1])) if at_end else (2 * (c[0] - p0[0]), 2 * (c[1] - p0[1]))
+    d2 = (2 * (p1[0] - 2 * c[0] + p0[0]), 2 * (p1[1] - 2 * c[1] + p0[1]))
+    sp = math.hypot(*d1)
+    return 0.0 if sp < 1e-9 else (d1[0] * d2[1] - d1[1] * d2[0]) / sp ** 3
+
+
+def _turn(u, v):
+    return math.degrees(math.atan2(u[0] * v[1] - u[1] * v[0], u[0] * v[0] + u[1] * v[1]))
+
+
+def fair_contour(pts, xh):
+    """pts: [(x, y, on)] of one closed TrueType contour, floats. Straightens small
+    kinks and evens out curvature steps between quadratics; returns the new list
+    and how many points it changed."""
+    changed = 0
+    # 1. small kinks
+    n = len(pts)
+    for i in range(n):
+        x, y, on = pts[i]
+        if not on:
+            continue
+        a, b = pts[i - 1], pts[(i + 1) % n]
+        u, v = (x - a[0], y - a[1]), (b[0] - x, b[1] - y)
+        if math.hypot(*u) < 1e-6 or math.hypot(*v) < 1e-6:
+            continue
+        t = abs(_turn(u, v))
+        if not FAIR_KINK[0] < t < FAIR_KINK[1]:
+            continue
+        if a[2] and b[2]:
+            continue                           # two straight edges: a corner, as drawn
+        if a[2]:                               # straight edge in, curve out: turn the handle
+            L, d = math.hypot(*v), (u[0] / math.hypot(*u), u[1] / math.hypot(*u))
+            pts[(i + 1) % n] = (x + L * d[0], y + L * d[1], False)
+        elif b[2]:                             # curve in, straight edge out
+            L, d = math.hypot(*u), (v[0] / math.hypot(*v), v[1] / math.hypot(*v))
+            pts[i - 1] = (x - L * d[0], y - L * d[1], False)
+        else:                                  # between two curves: onto the line of its handles
+            dx, dy = b[0] - a[0], b[1] - a[1]
+            k = ((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy)
+            pts[i] = (a[0] + k * dx, a[1] + k * dy, True)
+        changed += 1
+    # 2. curvature steps: make implied points that need it explicit, then slide
+    out = []
+    n = len(pts)
+    for i in range(n):
+        out.append(pts[i])
+        if not pts[i][2] and not pts[(i + 1) % n][2]:
+            a, b = pts[i], pts[(i + 1) % n]
+            out.append(((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, 'implied'))
+    pts = out
+    n = len(pts)
+
+    def on_before(j):                          # the on-curve (or implied) point before off-curve j
+        q = pts[(j - 1) % n]
+        return q
+
+    res = []
+    for i in range(n):
+        x, y, on = pts[i]
+        if not on:
+            res.append(pts[i])
+            continue
+        a, b = pts[i - 1], pts[(i + 1) % n]
+        keep = pts[i] if on is True else None
+        if not a[2] and not b[2]:
+            p0, p1 = on_before(i - 1), pts[(i + 2) % n]
+            if p0[2] and p1[2]:
+                kl = _quad_k(p0, a, (x, y), True)
+                kr = _quad_k((x, y), b, p1, False)
+                if kl * kr > 0 and abs(kl - kr) * xh >= FAIR_STEP:
+                    lam0 = ((x - a[0]) * (b[0] - a[0]) + (y - a[1]) * (b[1] - a[1])) / \
+                           ((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2)
+
+                    def diff(lam):
+                        q = (a[0] + lam * (b[0] - a[0]), a[1] + lam * (b[1] - a[1]))
+                        return _quad_k(p0, a, q, True) - _quad_k(q, b, p1, False)
+                    lo, hi = max(0.15, lam0 - 0.25), min(0.85, lam0 + 0.25)
+                    if diff(lo) * diff(hi) < 0:
+                        for _ in range(60):
+                            mid = (lo + hi) / 2
+                            if diff(lo) * diff(mid) <= 0:
+                                hi = mid
+                            else:
+                                lo = mid
+                        lam = (lo + hi) / 2
+                        keep = (a[0] + lam * (b[0] - a[0]), a[1] + lam * (b[1] - a[1]), True)
+                        changed += 1
+        if keep is not None:
+            res.append(keep)
+    return res, changed
+
+
+def fair_outlines(tt, skip=()):
+    """Run fair_contour over every simple glyph of `tt`; names in `skip` are left
+    alone. Returns the names of the glyphs changed."""
+    glyf = tt['glyf']
+    xh = tt['OS/2'].sxHeight
+    done = []
+    for name in tt.getGlyphOrder():
+        g = glyf[name]
+        if name in skip or g.isComposite() or g.numberOfContours <= 0:
+            continue
+        coords, ends, flags = list(g.coordinates), list(g.endPtsOfContours), list(g.flags)
+        new_pts, new_ends, total, start = [], [], 0, 0
+        for e in ends:
+            pts = [(float(coords[i][0]), float(coords[i][1]), bool(flags[i] & 1)) for i in range(start, e + 1)]
+            start = e + 1
+            if len(pts) >= 3:
+                pts, c = fair_contour(pts, xh)
+                total += c
+            new_pts += pts
+            new_ends.append(len(new_pts) - 1)
+        if not total:
+            continue
+        g.coordinates = GlyphCoordinates([(p[0], p[1]) for p in new_pts])
+        g.flags = array.array('B', [1 if p[2] else 0 for p in new_pts])
+        g.endPtsOfContours = new_ends
+        round_smooth(g)
+        g.program = ttProgram.Program()
+        g.program.fromBytecode(b'')
+        g.recalcBounds(glyf)
+        done.append(name)
+    return done
+
+
 def _put(tt, name, path, width):
     pen = TTGlyphPen(None)
-    cpen = Cu2QuPen(pen, max_err=1.0, reverse_direction=True)
+    # cubics (the a's corner) into quadratics closely: a quadratic spline is only
+    # tangent-continuous, and coarse pieces put visible curvature steps in a
+    # curve whose curvature changes (issue #19)
+    cpen = Cu2QuPen(pen, max_err=0.25, reverse_direction=True)
     for op, args in _tidy(path):
         getattr(cpen, op)(*args)
-    g = pen.glyph()
+    g = pen.glyph(round=float)
+    round_smooth(g)
     glyf = tt['glyf']
     glyf[name] = g
     g.recalcBounds(glyf)
@@ -643,6 +1222,92 @@ def _upright_of(src):
     return draw.Font(p.with_name(p.stem.rsplit('-', 1)[0] + f'-{up}{p.suffix}'))
 
 
+# the comma: a square head like the full stop's, and a straight tail leaning left
+COMMA_TAIL_DEPTH = 0.95  # below the baseline, in head sides
+COMMA_TAIL_WIDTH = 0.62  # the tail's width across, at the top, in head sides
+COMMA_TAIL_LEAN = 0.10   # how far (in head sides) the tail's end reaches left of the head
+NO_THIN = (',', '‘', '“')  # drawn at their final weight: the contrast thinning skips them
+
+
+def _comma_shape(f):
+    """The new comma, upright: a square head of the full stop's size on the
+    baseline, centred where Schibsted's round head was, and a straight tail of
+    even width, leaning left, its end cut level."""
+    side = _dot_side(f)
+    old = f.path(',')
+    top = old.bounds[3]
+    lx, rx = _hspan(old, top * 0.45)[-1]       # across the round head
+    cx = (lx + rx) / 2
+    h0, h1 = cx - side / 2, cx + side / 2
+    d = COMMA_TAIL_DEPTH * side
+    w = COMMA_TAIL_WIDTH * side
+    left_end = h0 - COMMA_TAIL_LEAN * side
+    lean = (h1 - w) - left_end
+    return polygon((h0, side), (h1, side), (h1, 0), (h1 - lean, -d), (h1 - w - lean, -d),
+                   (h1 - w, 0), (h0, 0))
+
+
+def r_comma(f):
+    return _comma_shape(f), f.adv(','), 0
+
+
+def r_quoteleft(f, ch):
+    """‘ and “: the new comma turned round in the box of each old one, its top
+    where the round head's top was, less the overshoot (the cap height)."""
+    c = _comma_shape(f)
+    cx0, cy0, cx1, cy1 = c.bounds
+    _, rb, _, _ = f.bounds('.')
+    out = pathops.Path()
+    for old in _contours(f.path(ch)):
+        x0, y0, x1, y1 = old.bounds
+        top = y1 + min(rb, 0)
+        # turn round about the centre of its box, then centre it in the old box
+        q = transform(c, -1, 0, 0, -1, cx0 + cx1, cy0 + cy1)
+        q = move(q, (x0 + x1) / 2 - (cx0 + cx1) / 2, top - cy1)
+        out = union(out, q)
+    return out, f.adv(ch), 0
+
+
+UPPER_DOT = ('colon', 'colon.case', 'colon.tf', 'semicolon', 'semicolon.tf')
+RAISED_COMMA = ('quoteright', 'quotedblright', 'uni02BC', 'napostrophe')
+MIDDLE_DOT = ('periodcentered', 'periodcentered.case', 'periodcentered.loclCAT',
+              'periodcentered.loclCAT.case', 'uni2219', 'Ldot', 'ldot')
+
+
+def _place_dot_components(tt, font):
+    """The full stop is now a smaller square sitting on the baseline. Where it is
+    used as an upper dot (colon, semicolon), move it up so its top is where the
+    round dot's top was, less the overshoot (the x-height); where it is a middle
+    dot (·, ŀ, ∙), keep its centre where the round dot's was. Italics move along
+    the slant."""
+    name = font.name('.')
+    _, rb, _, rt = font.bounds('.')            # the round dot, before the recipe
+    side = _dot_side(font)
+    tan = math.tan(math.radians(font.italic))
+    up = rt + min(rb, 0) - side
+    mid = (rb + rt) / 2 - side / 2
+    glyf = tt['glyf']
+    # the raised comma of ’ ” ʼ ŉ: its head's top where the round head's top was,
+    # less the overshoot (the cap height)
+    comma = font.name(',')
+    up_comma = font.bounds(',')[3] + min(rb, 0) - side
+    jobs = ([(n, up, 'top', name) for n in UPPER_DOT] + [(n, mid, 'all', name) for n in MIDDLE_DOT] +
+            [(n, up_comma, 'all', comma) for n in RAISED_COMMA])
+    for gname, dy, which, base in jobs:
+        if gname not in glyf or not glyf[gname].isComposite():
+            continue
+        g = glyf[gname]
+        comps = [c for c in g.components if c.glyphName == base]
+        if not comps:
+            continue
+        if which == 'top':
+            comps = [max(comps, key=lambda c: c.y)] if len(comps) > 1 or gname.startswith('semicolon') else []
+        for c in comps:
+            c.y = round(c.y + dy)
+            c.x = round(c.x + dy * tan)
+        g.recalcBounds(glyf)
+
+
 def modify(tt, font, src=None):
     """Apply the recipes, then the contrast correction, to `tt` (a TTFont);
     `font` is draw.Font on the same file `src`."""
@@ -661,6 +1326,7 @@ def modify(tt, font, src=None):
             _shift_composites(tt, name, dx, width - old_adv)
             _shift_anchors(tt, name, dx)
         done.append(name)
+    _place_dot_components(tt, font)
     if font.erode:
         _erode_all(tt, font, font.erode)
         done.append(f'contrast: verticals thinned by {2 * font.erode:.0f} units')
