@@ -47,6 +47,12 @@ ChangeLog
   own pairs for its eight Greek letters (with quotes, figures, dashes, and
   among themselves in Bold) are kept as they were. Latin kerning is
   unchanged.
+- i and j (issue #5): 0.3.1 made i's stem 6% heavier than n's but left j,
+  l and the f of fi alone, so ij, illi and the fi ligature mixed two stem
+  weights (Bold: 270 against 252). The i is now heavier by Akkurat's ratio
+  instead (87:85, about 2.4%), measured in the finished font, after the
+  contrast thinning, and j's stem matches it: 172 against l's 168 in Regular,
+  258 against 252 in Bold. ĵ, ij, ι and the fi ligatures follow.
 
 0.3.2 (2026-11-12)
 - Font files: head.fontRevision is now 0.302 (it dropped the patch number,
