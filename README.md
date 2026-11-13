@@ -12,11 +12,11 @@ It is an independent modified version under the Open Font License, not affiliate
 | | |
 |---|---|
 | Greek capitals | Γ Θ Λ Ξ Φ Ψ, plus Α Β Ε Ζ Η Ι Κ Μ Ν Ο Ρ Τ Υ Χ (same shapes as the Latin letters) |
-| Greek lowercase | γ δ ε ζ η θ ι κ λ ν ο ρ σ τ υ φ χ ψ ω, plus ϵ and ϕ (the symbol forms LaTeX uses for `\epsilon` and `\phi`) |
-| Maths | ∇ ∈ ∀ ∃ ∓ ⋅ ∼ ⊥ |
+| Greek lowercase | γ δ ε ζ η θ ι κ λ ν ξ ο ρ σ ς τ υ φ χ ψ ω, plus ϵ and ϕ (the symbol forms LaTeX uses for `\epsilon` and `\phi`) |
+| Maths | ∇ ∈ ∉ ∀ ∃ ∓ ⋅ ∼ ⊥ ∩ ∪ ⊂ ⊃ ⊆ ⊇ ∧ ∨ ⇒ ⇔ ∝ ∥ ∠ △ |
 
 Styles: Regular, Medium, Bold and their italics (Schibsted's static weights, not the variable font).
-Still missing: ξ, ς and the rest of the maths symbols; they come when a text needs them.
+Still missing: the rest of the maths symbols; they come when a text needs them.
 
 ## What is changed
 
@@ -47,7 +47,7 @@ It never replaces an existing release.
 ## How it is made
 
 The new glyphs are drawn by [`scripts/draw.py`](scripts/draw.py) from recipes rather than by hand:
-κ is k cut at the x-height, ρ is the bowl of p with a stem, ∇ is Δ turned over, and letters with no Latin relative (ζ, λ, ψ, Ψ…) are stroked along a centre line.
+κ is k cut at the x-height, ρ is the bowl of p with a stem, ∇ is Δ turned over, ⇒ is → with the shaft doubled, and letters with no Latin relative (ζ, λ, ψ, Ψ…) are stroked along a centre line.
 Stem widths, heights and sidebearings are measured from each style of the font, so the same recipes produce every weight and the italic.
 The result goes into `sources/<style>.ufo`, which opens in any font editor.
 A glyph finished by hand goes into `sources/hand-edited.txt`, and the script leaves it alone from then on.

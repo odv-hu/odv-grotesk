@@ -62,10 +62,14 @@
     <string>uni03B_B_.glif</string>
     <key>uni03BD</key>
     <string>uni03B_D_.glif</string>
+    <key>uni03BE</key>
+    <string>uni03B_E_.glif</string>
     <key>uni03BF</key>
     <string>uni03B_F_.glif</string>
     <key>uni03C1</key>
     <string>uni03C_1.glif</string>
+    <key>uni03C2</key>
+    <string>uni03C_2.glif</string>
     <key>uni03C3</key>
     <string>uni03C_3.glif</string>
     <key>uni03C4</key>
@@ -84,6 +88,10 @@
     <string>uni03D_5.glif</string>
     <key>uni03F5</key>
     <string>uni03F_5.glif</string>
+    <key>uni21D2</key>
+    <string>uni21D_2.glif</string>
+    <key>uni21D4</key>
+    <string>uni21D_4.glif</string>
     <key>uni2200</key>
     <string>uni2200.glif</string>
     <key>uni2203</key>
@@ -92,13 +100,39 @@
     <string>uni2207.glif</string>
     <key>uni2208</key>
     <string>uni2208.glif</string>
+    <key>uni2209</key>
+    <string>uni2209.glif</string>
     <key>uni2213</key>
     <string>uni2213.glif</string>
+    <key>uni221D</key>
+    <string>uni221D_.glif</string>
+    <key>uni2220</key>
+    <string>uni2220.glif</string>
+    <key>uni2225</key>
+    <string>uni2225.glif</string>
+    <key>uni2227</key>
+    <string>uni2227.glif</string>
+    <key>uni2228</key>
+    <string>uni2228.glif</string>
+    <key>uni2229</key>
+    <string>uni2229.glif</string>
+    <key>uni222A</key>
+    <string>uni222A_.glif</string>
     <key>uni223C</key>
     <string>uni223C_.glif</string>
+    <key>uni2282</key>
+    <string>uni2282.glif</string>
+    <key>uni2283</key>
+    <string>uni2283.glif</string>
+    <key>uni2286</key>
+    <string>uni2286.glif</string>
+    <key>uni2287</key>
+    <string>uni2287.glif</string>
     <key>uni22A5</key>
     <string>uni22A_5.glif</string>
     <key>uni22C5</key>
     <string>uni22C_5.glif</string>
+    <key>uni25B3</key>
+    <string>uni25B_3.glif</string>
   </dict>
 </plist>

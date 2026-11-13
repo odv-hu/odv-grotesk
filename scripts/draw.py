@@ -184,6 +184,19 @@ def r_epsilon(f):               # ε (\varepsilon)
     return f.fit(out, L, f.SBr * 0.7)
 
 
+def _filled(p):
+    """The outline's outer contour, filled: the glyph with its counters closed."""
+    import pathops
+    best = None
+    for c in p.contours:
+        q = pathops.Path()
+        c.draw(q.getPen())
+        b = q.bounds
+        if best is None or (b[2] - b[0]) * (b[3] - b[1]) > best[0]:
+            best = ((b[2] - b[0]) * (b[3] - b[1]), q)
+    return union(best[1])
+
+
 def _pt(cx, cy, rx, ry, a):
     t = math.radians(a)
     return cx + rx * math.cos(t), cy + ry * math.sin(t)
@@ -227,18 +240,23 @@ def r_gamma(f):
 
 
 def r_delta(f):
+    """δ: o with a stroke that leaves the bowl at its top, rises steeply to the left
+    and curls over to the right, ending in a terminal cut level like c's."""
     bowl = f.path('o')
     o = bounds(bowl); w = o[2] - o[0]; cx = (o[0] + o[2]) / 2
     v, h = f.Vr, f.H
     yt = f.asc - h / 2
-    # leaves the bowl at its top, rises steeply to the left, then turns right into a flat top
-    s = (Skeleton(cx + 0.04 * w, f.xh - 0.3 * h)
+    cut = yt - 0.19 * f.xh                        # underside of the terminal
+    s = (Skeleton(cx + 0.10 * w, f.xh - 1.2 * h)
          .curve(cx - 0.10 * w, f.xh + 0.03 * f.xh, cx - 0.29 * w, f.xh + 0.06 * f.xh,
                 cx - 0.29 * w, f.xh + 0.18 * f.xh)
-         .curve(cx - 0.29 * w, yt - 0.03 * f.xh, cx - 0.18 * w, yt, cx + 0.02 * w, yt)
-         .line(cx + 0.36 * w, yt))
+         .curve(cx - 0.29 * w, yt - 0.07 * f.xh, cx - 0.18 * w, yt, cx + 0.01 * w, yt)
+         .curve(cx + 0.19 * w, yt, cx + 0.31 * w, yt - 0.07 * f.xh,
+                cx + 0.33 * w, yt - 0.30 * f.xh))
     # less contrast than elsewhere: the rising stroke is shallow and would get too thin
-    return f.fit(union(bowl, stroke(s, v, (v + h) / 2)), f.SBr, f.SBr * 0.8)
+    top = subtract(stroke(s, v, (v + h) / 2), rect(cx, -BIG, BIG, cut))
+    top = subtract(top, _filled(bowl))            # it starts inside: meets the bowl cleanly
+    return f.fit(union(bowl, top), f.SBr, f.SBr * 0.8)
 
 
 def r_zeta(f):
@@ -259,6 +277,53 @@ def r_zeta(f):
          .curve(R - 0.06 * w, yb, R, yb - 0.08 * f.xh, R, yb - 0.22 * f.xh)
          .line(R, f.desc * 0.82))
     return f.fit(stroke(s, v, h, join=JOIN_MITER), f.SBr, f.SBr * 0.8)
+
+
+def r_xi(f):
+    """ξ: ζ's top and tail, the spine replaced by two bowls open to the right like ε's,
+    the upper one smaller and hung from the top bar."""
+    o = f.bounds('o'); w = (o[2] - o[0]) * 0.84
+    v, h = f.Vr, f.H
+    L = f.SBr + v / 2
+    R = L + w - v
+    yt = f.asc - h / 2
+    yb = h / 2
+    ym = yb + 0.57 * (yt - yb)                    # the middle, where the bowls meet
+    ux = L + 0.08 * w                             # the upper bowl's left, set in
+    urx, ury = 0.34 * w, (yt - ym) / 2
+    ucx, ucy = ux + urx, ym + ury
+    lrx, lry = 0.42 * w, (ym - yb) / 2
+    lcx, lcy = L + lrx, yb + lry
+    tip = ucx + 0.16 * w                          # end of the middle stroke
+    bar = Skeleton(R, yt).line(ucx, yt).arc(ucx, ucy, urx, ury, 90, 270).line(tip, ym)
+    low = (Skeleton(tip, ym).line(lcx, ym).arc(lcx, lcy, lrx, lry, 90, 270)
+           .line(R - 0.24 * w, yb)
+           .curve(R - 0.06 * w, yb, R, yb - 0.08 * f.xh, R, yb - 0.22 * f.xh)
+           .line(R, f.desc * 0.82))
+    out = union(stroke(bar, v, h), stroke(low, v, h))
+    return f.fit(out, f.SBr, f.SBr * 0.8)
+
+
+def r_final_sigma(f):
+    """ς: the top of c, terminal cut level, its lower half running on along the
+    baseline into a tail like ζ's."""
+    import modify
+    c = modify._level_terminals(f, 'c')
+    b = bounds(c); cx = (b[0] + b[2]) / 2
+    cy = (b[1] + b[3]) / 2
+    v, h = f.Vr, f.H
+    keep = union(rect(-BIG, cy, BIG, BIG), rect(-BIG, -BIG, cx, BIG))
+    bowl = intersect(c, keep)
+    bot = f.vspan('c', cx)[0]                     # the bottom stroke at the middle
+    yb = bot[0] + bot[1] / 2
+    hb = bot[1]
+    R = b[2] - 0.06 * (b[2] - b[0]) - v / 2       # the tail's centre line
+    w = b[2] - b[0]
+    tail = (Skeleton(cx - 1, yb).line(R - 0.26 * w, yb)
+            .curve(R - 0.06 * w, yb, R, yb - 0.08 * f.xh, R, yb - 0.24 * f.xh)
+            .line(R, f.desc * 0.72))
+    out = union(bowl, stroke(tail, v, hb))
+    return f.fit(out, f.SBr, f.SBr * 0.8)
 
 
 def r_theta(f):
@@ -442,6 +507,211 @@ def r_perp(f):
     stem = rect(cx - v / 2, 0, cx + v / 2, f.cap)
     return union(bar, stem), f.adv('+')
 
+
+def _op(f):
+    """Stroke weight of the operators (+ − = → are monoline)."""
+    b = f.bounds('+')
+    return f.hspan('+', (b[1] + b[3]) * 0.5 + (b[3] - b[1]) * 0.25)[0][1]
+
+
+def _set_box(f):
+    """Vertical extent and width shared by ∈ ⊂ ∪ ∧ and their relatives."""
+    m = f.bounds('×')
+    yc = (m[1] + m[3]) / 2
+    half = 0.56 * (m[3] - m[1])
+    return yc - half, yc + half, 0.86 * 2 * half
+
+
+def _subset(f):                 # the ∈ curve without its bar: ⊂
+    y0, y1, w = _set_box(f)
+    return _lunate(f, y0, y1, w, f.V, f.H, bar=False)
+
+
+def _mirror(f, recipe):
+    """Turn a glyph drawn open to the right into one open to the left, sidebearings swapped."""
+    p, adv = recipe(f)
+    x0, _, x1, _ = bounds(p)
+    lsb, rsb = x0 + f.shift, adv - x1 - f.shift
+    return f.fit(transform(p, a=-1), rsb, lsb)
+
+
+def r_subset(f):                # ⊂
+    return _subset(f)
+
+
+def r_superset(f):              # ⊃
+    return _mirror(f, _subset)
+
+
+def _subseteq(f):
+    """⊂ over a bar, as far below it as the bars of = are apart; together as tall as
+    ⊂ and half a step, centred where ⊂ is."""
+    y0, y1, w = _set_box(f)
+    e = f.bounds('=')
+    gap = f.vspan('=', (e[0] + e[2]) / 2)[1][0] - (e[1] + f.H)  # inner gap of =
+    lo, hi = y0 - (gap + f.H) / 4, y1 + (gap + f.H) / 4
+    p, adv = _lunate(f, lo + f.H + gap, hi, w, f.V, f.H, bar=False)
+    x0, _, x1, _ = bounds(p)
+    bar = rect(x0 + f.V / 2, lo, x1, lo + f.H)
+    return union(p, bar), adv
+
+
+def r_subseteq(f):              # ⊆
+    return _subseteq(f)
+
+
+def r_superseteq(f):            # ⊇
+    return _mirror(f, _subseteq)
+
+
+def r_notelement(f):
+    """∉: ∈ with a slash as heavy as the slash of ≠, steeper, since ∈ is narrower than =."""
+    p, adv = r_element(f)
+    n = f.bounds('≠')
+    ya, yb = n[1] + 20, n[3] - 20
+    (xa, wa), (xb, _) = f.hspan('≠', ya)[0], f.hspan('≠', yb)[0]
+    perp = wa * math.cos(math.atan((xb - xa) / (yb - ya)))   # the slash's own thickness
+    b = bounds(p)
+    ext = 0.06 * (b[3] - b[1])
+    lo, hi = b[1] - ext, b[3] + ext
+    k = 0.55 * (b[2] - b[0]) / (hi - lo)                     # run per unit height
+    cx, cy = (b[0] + b[2]) / 2 + 0.05 * (b[2] - b[0]), (b[1] + b[3]) / 2
+    slash = para(cx + k * (lo - cy), lo, cx + k * (hi - cy), hi, perp / math.cos(math.atan(k)))
+    out = union(p, slash)
+    x0, _, x1, _ = bounds(out)
+    return move(out, f.SB - f.shift - b[0]), round(adv + max(0, b[0] - x0) + max(0, x1 - b[2]))
+
+
+def _setcup(f, flip=False):
+    y0, y1, w = _set_box(f)
+    v, h = f.V, f.H
+    L, R = f.SB + v / 2, f.SB + w - v / 2
+    rx = (R - L) / 2
+    ry = rx * 1.05
+    yb = y0 + h / 2
+    s = (Skeleton(L, y1).line(L, yb + ry).arc((L + R) / 2, yb + ry, rx, ry, 180, 360)
+         .line(R, y1))
+    out = stroke(s, v, h)
+    if flip:
+        out = transform(out, d=-1, f=y0 + y1)
+    return f.fit(out, f.SB, f.SB)
+
+
+def r_cup(f):                   # ∪
+    return _setcup(f)
+
+
+def r_cap(f):                   # ∩
+    return _setcup(f, flip=True)
+
+
+def _wedge(f, flip=False):
+    """∧: two diagonals meeting in a flat-topped apex, like Λ, in the maths weight."""
+    y0, y1, w = _set_box(f)
+    t = _op(f)
+    L, R = 0, w
+    cx = w / 2
+    dy = y1 - y0
+    ang = math.atan2(dy, cx)                        # of each arm, from the horizontal
+    d = t / math.sin(ang)                           # its width measured across
+    out = union(para(L + d / 2, y0, cx, y1, d), para(R - d / 2, y0, cx, y1, d))
+    out = intersect(out, rect(-BIG, y0, BIG, y1))
+    if flip:
+        out = transform(out, d=-1, f=y0 + y1)
+    return f.fit(out, f.SBd, f.SBd)
+
+
+def r_and(f):                   # ∧
+    return _wedge(f)
+
+
+def r_or(f):                    # ∨
+    return _wedge(f, flip=True)
+
+
+def _double_arrow(f, ch):
+    """⇒ ⇔ from → ↔: the heads kept as they are, the shaft doubled at the spacing of =."""
+    p = f.path(ch)
+    b = bounds(p)
+    mid, ym = (b[0] + b[2]) / 2, (b[1] + b[3]) / 2
+    y0, t = min(f.vspan(ch, mid), key=lambda s: abs(s[0] + s[1] / 2 - ym))   # the shaft
+    cy = y0 + t / 2
+    e = f.bounds('=')
+    off = (f.vspan('=', (e[0] + e[2]) / 2)[1][0] - e[1]) / 2   # = bars, centre to centre / 2
+    band = rect(-BIG, cy - t / 2 - 0.5, BIG, cy + t / 2 + 0.5)
+    y1, y2 = cy + t / 2 + 40, cy + t / 2 + 240
+    arms = list(zip(f.hspan(ch, y1), f.hspan(ch, y2), f.hspan(ch, cy + off)))
+    both = len(arms) == 2
+    heads, ends = p, {}
+    for (xa, wa), (xb, wb), (xc, wc) in arms:
+        right = xa + wa / 2 > mid
+        e1, e2 = (xa, xb) if right else (xa + wa, xb + wb)     # inner edge of the arm
+        edge = lambda y: e1 + (e2 - e1) / (y2 - y1) * (y - y1)
+        far = 4 * BIG
+        wedge = polygon((edge(cy), cy), (edge(cy + far), cy + far), (edge(cy + far), cy - far))
+        if both:
+            wedge = intersect(wedge, rect(mid, -BIG, BIG, BIG) if right else rect(-BIG, -BIG, mid, BIG))
+        heads = subtract(heads, intersect(band, wedge))        # the single shaft goes
+        ends[right] = xc + wc / 2                              # shafts end mid-arm
+    xl, xr = ends.get(False, b[0]), ends.get(True, b[2])
+    shafts = union(rect(xl, cy + off - t / 2, xr, cy + off + t / 2),
+                   rect(xl, cy - off - t / 2, xr, cy - off + t / 2))
+    return union(heads, shafts), f.adv(ch)
+
+
+def r_implies(f):               # ⇒
+    return _double_arrow(f, '→')
+
+
+def r_iff(f):                   # ⇔
+    return _double_arrow(f, '↔')
+
+
+def r_propto(f):
+    """∝: ∞ with its right loop cut open, the ends cut upright."""
+    p = f.path('∞')
+    b = bounds(p)
+    xr = b[2] - 0.13 * (b[2] - b[0])
+    out = intersect(p, rect(-BIG, -BIG, xr, BIG))
+    return f.fit(out, f.lsb('∞'), f.rsb('∞') + 0.04 * (b[2] - b[0]))
+
+
+def r_parallel(f):              # ∥: two bars of |, as far apart as the bars of =
+    p = f.path('|')
+    b = bounds(p)
+    e = f.bounds('=')
+    t = _op(f)
+    gap = f.vspan('=', (e[0] + e[2]) / 2)[1][0] - (e[1] + t)
+    w = b[2] - b[0]
+    return f.fit(union(p, move(p, w + gap)), f.lsb('|'), f.rsb('|'))
+
+
+def r_angle(f):
+    """∠: a base on the baseline and an arm rising from its left end."""
+    _, y1, w = _set_box(f)
+    t = _op(f)
+    top = y1
+    run = top / math.tan(math.radians(52))
+    s = (Skeleton(w, t / 2).line(0, t / 2).line(run * 1.1, top * 1.1))
+    out = stroke(s, t, t, join=JOIN_MITER)
+    out = intersect(out, rect(-BIG, 0, BIG, top))
+    out = intersect(out, rect(-BIG, -BIG, w, BIG))
+    return f.fit(out, f.SBd, f.SB * 0.8)
+
+
+def r_triangle(f):
+    """△: an outlined equilateral triangle on the baseline, its apex at cap height,
+    in the maths weight with sharp corners."""
+    t = _op(f)
+    hgt = f.cap + f.os                              # outer apex, overshooting like A's
+    # skeleton triangle: the outer edge sits t/2 outside it
+    hs = hgt - t / 2 - t                            # apex of the skeleton: miter = t at 60°
+    side = hs * 2 / math.sqrt(3)
+    s = Skeleton(0, t / 2).line(side, t / 2).line(side / 2, t / 2 + hs).close()
+    out = stroke(s, t, t, join=JOIN_MITER)
+    return f.fit(out, f.SBd, f.SBd)
+
+
 # name -> (unicode, recipe or alias base)
 GLYPHS = {
     # Greek capitals that are Latin letters
@@ -460,12 +730,19 @@ GLYPHS = {
     'uni03BA': (0x03BA, r_kappa), 'uni03BB': (0x03BB, r_lambda), 'uni03C1': (0x03C1, r_rho),
     'uni03C3': (0x03C3, r_sigma), 'uni03C4': (0x03C4, r_tau), 'uni03C5': (0x03C5, r_upsilon),
     'uni03C6': (0x03C6, r_phi), 'uni03C7': (0x03C7, r_chi), 'uni03C8': (0x03C8, r_psi),
-    'uni03C9': (0x03C9, r_omega), 'uni03D5': (0x03D5, r_phi), 'uni03F5': (0x03F5, r_epsilon_lunate),
+    'uni03C9': (0x03C9, r_omega), 'uni03BE': (0x03BE, r_xi), 'uni03C2': (0x03C2, r_final_sigma), 'uni03D5': (0x03D5, r_phi), 'uni03F5': (0x03F5, r_epsilon_lunate),
     # maths
     'uni2207': (0x2207, r_nabla), 'uni2208': (0x2208, r_element), 'uni2200': (0x2200, r_forall),
     'uni2203': (0x2203, r_exists), 'uni2213': (0x2213, r_minusplus),
     'uni22C5': (0x22C5, '·'), 'uni223C': (0x223C, '~'),
     'uni22A5': (0x22A5, r_perp),
+    'uni2209': (0x2209, r_notelement), 'uni2282': (0x2282, r_subset), 'uni2283': (0x2283, r_superset),
+    'uni2286': (0x2286, r_subseteq), 'uni2287': (0x2287, r_superseteq),
+    'uni2229': (0x2229, r_cap), 'uni222A': (0x222A, r_cup),
+    'uni2227': (0x2227, r_and), 'uni2228': (0x2228, r_or),
+    'uni21D2': (0x21D2, r_implies), 'uni21D4': (0x21D4, r_iff),
+    'uni221D': (0x221D, r_propto), 'uni2225': (0x2225, r_parallel),
+    'uni2220': (0x2220, r_angle), 'uni25B3': (0x25B3, r_triangle),
 }
 
 
