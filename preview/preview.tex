@@ -1,6 +1,7 @@
 % !TEX program = lualatex
-% Preview of odv Grotesk: the added Greek and maths glyphs in text and equations.
-% Build the fonts first (python3 scripts/build.py), then: lualatex preview.tex
+% Preview of odv Grotesk: the added Greek and maths glyphs in text, and equations in
+% odv Math as odv.sty sets them. Build the fonts first (python3 scripts/build.py and
+% python3 scripts/odvmath.py), then: lualatex preview.tex (or xelatex)
 \documentclass[11pt]{article}
 \usepackage[a4paper, left=25mm, right=45mm, top=25mm, bottom=25mm]{geometry}
 \usepackage{xcolor}
@@ -12,14 +13,13 @@
   Path = ../fonts/ttf/, Extension = .ttf,
   UprightFont = *-Regular, ItalicFont = *-Italic,
   BoldFont = *-Bold, BoldItalicFont = *-BoldItalic]
-% Maths: structure (fractions, integrals, big brackets, blackboard bold) from Fira Math;
-% letters, digits and Greek from odv Grotesk, so equations read in the same type as the text.
-\setmathfont{FiraMath-Regular.otf}[Path = ../upstream/]
-\setmathfont{odvGrotesk-Regular.ttf}[Path = ../fonts/ttf/, range = {up/{num,latin,Latin,greek,Greek}}]
-\setmathfont{odvGrotesk-Italic.ttf}[Path = ../fonts/ttf/, range = {it->up}]
-\setmathfont{odvGrotesk-Bold.ttf}[Path = ../fonts/ttf/, range = {bfup->up}]
-\setmathfont{odvGrotesk-BoldItalic.ttf}[Path = ../fonts/ttf/, range = {bfit->up}]
-\setmathfont{odvGrotesk-Regular.ttf}[Path = ../fonts/ttf/, range = {"2207,"2208,"2200,"2203,"2213,"22C5,"2202,"00D7}]
+% Maths as odv.sty sets it: odv Math (New Computer Modern Math Book built at 112 %) at
+% 100 %, \mathrm from New Computer Modern Book at 112 % (Latin Modern if not installed).
+% \text{} stays odv Grotesk.
+\setmathfont{odvMath-Regular.otf}[Path = ../fonts/otf/]
+\IfFontExistsTF{NewCM10-Book.otf}
+  {\setmathrm{NewCM10-Book.otf}[Scale = 1.12, BoldFont = NewCM10-Bold.otf]}
+  {\setmathrm{lmroman10-regular.otf}[Scale = 1.12, BoldFont = lmroman10-bold.otf]}
 \linespread{1.25}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{0.6\baselineskip}
@@ -34,18 +34,30 @@
 \pagestyle{empty}
 \begin{document}
 
-\caps{odv Grotesk · preview 1 · 19 October 2026}
+\caps{odv Grotesk · preview 2 · 13 November 2026}
 
 {\fontsize{26}{30}\selectfont\M Greek and maths for Schibsted Grotesk}
 
-\caps{added glyphs}\\[2pt]
+\caps{added Greek}\\[2pt]
 {\fontsize{20}{28}\selectfont
-\R ΓΘΛΞΦΨ γδεϵζηθκλνρστυφϕχψω ∇∈∀∃∓⋅⊥\\
-\I ΓΘΛΞΦΨ γδεϵζηθκλνρστυφϕχψω ∇∈∀∃∓⋅⊥\\
-\M ΓΘΛΞΦΨ γδεϵζηθκλνρστυφϕχψω ∇∈∀∃∓⋅⊥\\
-\MI ΓΘΛΞΦΨ γδεϵζηθκλνρστυφϕχψω ∇∈∀∃∓⋅⊥\\
-\B ΓΘΛΞΦΨ γδεϵζηθκλνρστυφϕχψω ∇∈∀∃∓⋅⊥\\
-\BI ΓΘΛΞΦΨ γδεϵζηθκλνρστυφϕχψω ∇∈∀∃∓⋅⊥}
+\R ΓΘΛΞΦΨ γδεϵζηθκλνξρσςτυφϕχψω\\
+\I ΓΘΛΞΦΨ γδεϵζηθκλνξρσςτυφϕχψω\\
+\M ΓΘΛΞΦΨ γδεϵζηθκλνξρσςτυφϕχψω\\
+\MI ΓΘΛΞΦΨ γδεϵζηθκλνξρσςτυφϕχψω\\
+\B ΓΘΛΞΦΨ γδεϵζηθκλνξρσςτυφϕχψω\\
+\BI ΓΘΛΞΦΨ γδεϵζηθκλνξρσςτυφϕχψω}
+
+\caps{added maths}\\[2pt]
+{\fontsize{20}{28}\selectfont
+\R ∇ ∈ ∉ ∀ ∃ ∓ ⋅ ⊥ ∩ ∪ ⊂ ⊃ ⊆ ⊇ ∧ ∨ ⇒ ⇔ ∝ ∥ ∠ △\\
+\I ∇ ∈ ∉ ∀ ∃ ∓ ⋅ ⊥ ∩ ∪ ⊂ ⊃ ⊆ ⊇ ∧ ∨ ⇒ ⇔ ∝ ∥ ∠ △\\
+\M ∇ ∈ ∉ ∀ ∃ ∓ ⋅ ⊥ ∩ ∪ ⊂ ⊃ ⊆ ⊇ ∧ ∨ ⇒ ⇔ ∝ ∥ ∠ △\\
+\MI ∇ ∈ ∉ ∀ ∃ ∓ ⋅ ⊥ ∩ ∪ ⊂ ⊃ ⊆ ⊇ ∧ ∨ ⇒ ⇔ ∝ ∥ ∠ △\\
+\B ∇ ∈ ∉ ∀ ∃ ∓ ⋅ ⊥ ∩ ∪ ⊂ ⊃ ⊆ ⊇ ∧ ∨ ⇒ ⇔ ∝ ∥ ∠ △\\
+\BI ∇ ∈ ∉ ∀ ∃ ∓ ⋅ ⊥ ∩ ∪ ⊂ ⊃ ⊆ ⊇ ∧ ∨ ⇒ ⇔ ∝ ∥ ∠ △}
+
+\caps{accents}\\[2pt]
+{\fontsize{20}{28}\selectfont\R ά έ ή ί ό ύ ώ ϊ ϋ ΐ ΰ Ά Έ Ή Ί Ό Ύ Ώ Ϊ Ϋ · λέξη δέλτα ξένος ψυχή}
 
 \caps{already in Schibsted Grotesk, for comparison}\\[2pt]
 {\fontsize{20}{28}\selectfont\SG ΔΠΣΩ αβμπ ∂×± ok pv xn t}
