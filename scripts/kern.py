@@ -32,7 +32,7 @@ SIDES = {
     'γ': ('v', 'v'),
     'δ': ('b', 'o'),            # left: the rising stroke is ascender-high, like b's stem
     'ε': ('o', 'c'), 'ϵ': ('o', 'c'),
-    'ζ': ('b', None),
+    'ζ': ('b', None), 'ξ': ('b', None),     # ξ: ζ's top and tail
     'η': ('n', 'n'),
     'θ': ('O', 'O'),            # an ascender-high O
     'ι': ('ı', 'ı'),
@@ -44,6 +44,7 @@ SIDES = {
     'π': ('t', 't'), 'τ': ('t', 't'),
     'ρ': ('o', 'p'),
     'σ': ('o', 't'),            # the bar on the right ends like t's
+    'ς': ('o', 'c'),            # the top of c
     'υ': ('u', 'u'), 'ψ': ('u', 'u'), 'ω': ('u', 'u'),
     'φ': ('o', 'o'), 'ϕ': ('o', 'o'),
     'χ': ('x', 'x'),
