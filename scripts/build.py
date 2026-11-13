@@ -25,7 +25,7 @@ import kern  # noqa: E402
 import modify  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-VERSION = '0.3.4'
+VERSION = '0.3.5'
 FAMILY = 'odv Grotesk'
 PS_FAMILY = 'odvGrotesk'
 UPSTREAM_COMMIT = 'd485f61f105e1b3935f4d21dfb4d371359798603'  # Schibsted Grotesk 1.100
@@ -69,7 +69,11 @@ def merge(tt, ufo):
             g.width = hmtx[g.components[0].baseGlyph][0]
         pen = TTGlyphPen(tt.getGlyphSet())
         g.draw(Cu2QuPen(pen, max_err=1.0, reverse_direction=True))
-        tg = pen.glyph()
+        if g.components and not g.contours:
+            tg = pen.glyph()
+        else:
+            tg = pen.glyph(round=float)
+            modify.round_smooth(tg)     # smooth nodes rounded to stay smooth
         glyf[name] = tg  # also appends the name to the glyph order
         added.append((name, g))
     tt.setGlyphOrder(glyf.glyphOrder)
@@ -129,6 +133,10 @@ def build(style, redraw):
     added = merge(tt, ufoLib2.Font.open(ufo_path))
     accented = accents.accents(tt)
     kerned = kern.kern(tt, accented)
+    hand = ROOT / 'sources' / 'hand-edited.txt'
+    skip = {ln.strip() for ln in hand.read_text().splitlines()
+            if ln.strip() and not ln.startswith('#')} if hand.exists() else set()
+    faired = modify.fair_outlines(tt, skip)
     rename(tt)
     out = ROOT / 'fonts' / 'ttf' / f'{PS_FAMILY}-{style}.ttf'
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -137,7 +145,8 @@ def build(style, redraw):
     web.parent.mkdir(parents=True, exist_ok=True)
     tt.flavor = 'woff2'
     tt.save(web)
-    print(f'{out.name}: {len(added)} glyphs added, {kerned} Greek letters kerned')
+    print(f'{out.name}: {len(added)} glyphs added, {kerned} Greek letters kerned, '
+          f'{len(faired)} outlines smoothed')
 
 
 if __name__ == '__main__':

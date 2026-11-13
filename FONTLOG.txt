@@ -12,6 +12,50 @@ with or endorsed by Schibsted.
 ChangeLog
 ---------
 
+0.3.5 (2026-11-13)
+- a (issue #19): the corner where the flat top of the bowl turns down is
+  rounder and no longer has a point where the bend starts. Its curvature
+  eases in from nothing on the flat, rises and falls evenly, and runs on
+  into the bowl's own curvature without a step (scripts/fair.py: the corner
+  is defined by its curvature, solved to land on the flat and the bowl). The
+  outside of the bowl reaches a little further along the top than the
+  counter, so the two flats begin together.
+- Contrast thinning (Medium, Bold and their italics) keeps its weights but
+  no longer leaves marks. Every stroke still loses the same amount on each
+  side, but at the top and bottom of every round, where the two halves met
+  in a point (o, e, s, 0, ©, the circled figures…), and at the top and
+  bottom of counters, where they left a flat, both halves now run into a
+  short curve that matches their direction and curvature. Terminal cuts
+  keep their angle (the curve is cut where the cut moved to), crotches are
+  cut where the two curves cross, and the inside corner of v keeps its
+  short flat. The weights of stems, rounds, bars and diagonals are as
+  before, to the unit.
+- Schibsted's own small kinks are straightened (smooth points turning 0.5
+  to 10 degrees, as in the § and some figures), and steps in curvature
+  between two quadratic pieces, like the one at the bottom of g's lower
+  counter, are evened out by sliding the point along its tangent, in every
+  glyph of every style.
+- Smooth points stay smooth in the TrueType files: they are rounded to the
+  whole-unit position that keeps them smoothest, and gentle curves are no
+  longer flattened into lines. Bold had about 250 visible kinks in 0.3.4,
+  almost all from these and the thinning; 17 are left, the short flats at
+  inside corners where strokes cross ($ ¢ ¤ & ð).
+- . ! ? ¡ ¿ have square dots like the dot of i, the same size, on the
+  baseline; : ; … and the middle dot ·, ŀ Ŀ and the tabular forms are made of
+  the full stop and follow, the upper dot of the colon topping out at the
+  x-height.
+- , has a square head of the same size and a straight tail of even width
+  leaning left, cut level, smaller than the round comma it replaces. ; ’ ”
+  ‚ „ ʼ ŉ are made of it and follow; ‘ and “ are the same comma turned
+  round. These and the full stop are not thinned in Medium and Bold, so the
+  heads stay square.
+- z E F T Z L H: in Medium and Bold the contrast thinning narrows the stems
+  but not the bars, so the straight bars came out as heavy as the stems
+  (Bold: 0.99 of the stem). They are back to Schibsted's proportion, about
+  0.85: a bar on the baseline or the cap height keeps its outer edge, a
+  middle bar thins about its centre, and Z's diagonal keeps its angle.
+- i and j: stems 4.5% heavier than n's (87:85 looked thin next to n and l).
+
 0.3.4 (2026-11-13)
 - Accented Greek (issue #15). The monotonic letters ά έ ή ί ό ύ ώ ϊ ϋ ΐ ΰ,
   Ά Έ Ή Ί Ό Ύ Ώ Ϊ Ϋ and the spacing ΄ ΅ are added, built from the letter and

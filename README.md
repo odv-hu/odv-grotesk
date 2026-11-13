@@ -25,13 +25,16 @@ Still missing: the rest of the maths symbols; they come when a text needs them.
 |---|---|
 | I | no serifs: a plain stem, spaced like the stem of H |
 | e | the end of the lower stroke is cut level, so the opening is a horizontal slot |
-| a | the top of the bowl runs flat out from the stem and turns down in a tighter corner (upright styles; the italic a is single-storey and unchanged) |
+| a | the top of the bowl runs flat out from the stem and turns down in a corner whose curvature eases in from the flat and out into the bowl, with no point where the bend starts (upright styles; the italic a is single-storey and unchanged) |
 | c | both terminals cut level |
 | i j | square dot, top level with the top of l, a little wider than the stem (relatively less in heavier weights); it is the same glyph as the dot accent and the dieresis, so ä ö ü ż İ turn square too |
-| i j | stems a touch heavier than n's (by Akkurat's 87:85), so they don't read thin next to round letters; i and j match, and l and the f of fi stay close enough not to show |
+| i j | stems a touch heavier than n's (4.5%), so they don't read thin next to round letters; i and j match |
 | p | counter moved right so stem and bowl are equally thick, which widens the join |
 | f t (italics) | the upright f and t slanted, instead of the cursive forms |
-| contrast | Medium and Bold (and their italics) have thinner verticals, so horizontals no longer look thin next to the stems; Bold now matches Akkurat Pro Bold in stem weight and contrast |
+| . , ! ? | square dots, the size of i's, and a comma with a square head and a straight tail leaning left, cut level; : ; … · ŀ and the quotes ‘ ’ “ ” ‚ „ are made of them and follow |
+| contrast | Medium and Bold (and their italics) have thinner verticals, so horizontals no longer look thin next to the stems; Bold now matches Akkurat Pro Bold in stem weight and contrast. The tops and bottoms of rounds run into short smooth curves instead of the point the thinning would leave |
+| z E F T Z L H | in Medium and Bold the straight bars back to Schibsted's proportion to the thinned stem (about 0.85), so these letters are not darker than the rest |
+| curves | Schibsted's own small kinks straightened and curvature steps between quadratic pieces evened out, in every glyph; smooth points stay smooth when rounded to whole units |
 
 Accented forms (Í, é, ą, ç…), IJ, the fi ligatures and Greek Ι are built from these glyphs and follow them.
 The changes are recipes in [`scripts/modify.py`](scripts/modify.py), applied to each style at build time.
