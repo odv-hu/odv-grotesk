@@ -13,6 +13,7 @@ It is an independent modified version under the Open Font License, not affiliate
 |---|---|
 | Greek capitals | Γ Θ Λ Ξ Φ Ψ, plus Α Β Ε Ζ Η Ι Κ Μ Ν Ο Ρ Τ Υ Χ (same shapes as the Latin letters) |
 | Greek lowercase | γ δ ε ζ η θ ι κ λ ν ξ ο ρ σ ς τ υ φ χ ψ ω, plus ϵ and ϕ (the symbol forms LaTeX uses for `\epsilon` and `\phi`) |
+| Greek accents | ά έ ή ί ό ύ ώ ϊ ϋ ΐ ΰ, Ά Έ Ή Ί Ό Ύ Ώ Ϊ Ϋ, ΄ ΅ (monotonic); combining accents sit on every Greek letter |
 | Maths | ∇ ∈ ∉ ∀ ∃ ∓ ⋅ ∼ ⊥ ∩ ∪ ⊂ ⊃ ⊆ ⊇ ∧ ∨ ⇒ ⇔ ∝ ∥ ∠ △ |
 
 Styles: Regular, Medium, Bold and their italics (Schibsted's static weights, not the variable font).
@@ -53,6 +54,8 @@ The result goes into `sources/<style>.ufo`, which opens in any font editor.
 A glyph finished by hand goes into `sources/hand-edited.txt`, and the script leaves it alone from then on.
 
 The Greek letters are kerned like Latin letters with the same sides: [`scripts/kern.py`](scripts/kern.py) puts Τ in T's kerning classes, Λ in A's, Γ in E's on the left and T's on the right, and so on, so `ΓΑΤΑ` sits like `AVATAR`.
+
+Accented Greek is built by [`scripts/accents.py`](scripts/accents.py): every Greek letter gets a top anchor (the Latin twin's, or centred over the top of the drawn glyph), so combining accents land on it, and the monotonic letters ά…ώ, Ά…Ώ are composites of the letter and the font's own acute and dieresis. On the capitals the tonos stands to the left; in ΐ ΰ the dots spread to let the acute stand between them.
 
 [`scripts/build.py`](scripts/build.py) downloads the pinned Schibsted Grotesk release, merges the glyphs from the UFOs, adds the Greek kerning, renames the family and writes:
 
