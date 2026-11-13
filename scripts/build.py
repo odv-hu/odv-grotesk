@@ -31,7 +31,6 @@ PS_FAMILY = 'odvGrotesk'
 UPSTREAM_COMMIT = 'd485f61f105e1b3935f4d21dfb4d371359798603'  # Schibsted Grotesk 1.100
 UPSTREAM_URL = ('https://raw.githubusercontent.com/schibsted/schibsted-grotesk/'
                 f'{UPSTREAM_COMMIT}/fonts/ttf/SchibstedGrotesk-{{style}}.ttf')
-FIRA_MATH_URL = 'https://github.com/firamath/firamath/releases/download/v0.3.4/FiraMath-Regular.otf'
 STYLES = ['Regular', 'Medium', 'Bold', 'Italic', 'MediumItalic', 'BoldItalic']
 COPYRIGHT_ADDITION = ('Greek and mathematical additions and modifications copyright 2026 '
                       'Balázs Fürtön (https://github.com/odv-hu/odv-grotesk).')
@@ -55,15 +54,6 @@ def upstream(style):
         print(f'downloading {path.name}')
         urllib.request.urlretrieve(UPSTREAM_URL.format(style=style), path)
     return path
-
-
-def fira_math():
-    """Fira Math (OFL) supplies maths structure in preview/preview.tex and odv.sty."""
-    path = ROOT / 'upstream' / 'FiraMath-Regular.otf'
-    if not path.exists():
-        path.parent.mkdir(exist_ok=True)
-        print(f'downloading {path.name}')
-        urllib.request.urlretrieve(FIRA_MATH_URL, path)
 
 
 def merge(tt, ufo):
@@ -157,4 +147,3 @@ if __name__ == '__main__':
     a = ap.parse_args()
     for st in a.styles:
         build(st, not a.no_draw)
-    fira_math()

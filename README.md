@@ -76,9 +76,9 @@ The equations go with odv Grotesk in Computer Modern. **odv Math** is New Comput
 ## Maths in LaTeX
 
 odv Grotesk is a text font, not a maths font: it has no maths spacing, italic correction or script sizes, so equations stay in Computer Modern.
-[odv-latex](https://github.com/odv-hu/odv-latex) (`odv.sty`) sets text in odv Grotesk and maths in Computer Modern enlarged to 112 %.
+[odv-latex](https://github.com/odv-hu/odv-latex) (`odv.sty`) sets text in odv Grotesk and maths in Computer Modern enlarged to 112 %: odv Math when it is installed, New Computer Modern Book otherwise.
 The Greek letters here are for running text, Keynote and the website.
-[`preview/preview.tex`](preview/preview.tex) shows the glyphs; its equations still use an earlier experiment (Fira Math with odv Grotesk letters) that was dropped.
+[`preview/preview.tex`](preview/preview.tex) shows the glyphs, and equations in odv Math as `odv.sty` sets them.
 
 ## Licence
 
