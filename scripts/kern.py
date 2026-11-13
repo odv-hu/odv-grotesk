@@ -148,13 +148,19 @@ def _classes(tt, sub, left, right, letters):
     _sort_coverage(tt, sub)
 
 
-def kern(tt):
+def kern(tt, accented=None):
     """Give the Greek letters of `tt` the kerning of their Latin models (SIDES).
+    `accented` maps accented letters (scripts/accents.py) to the letter whose sides
+    they take, or to (left, right) letters, None leaving a side unkerned.
     Returns the number of Greek letters kerned."""
     cmap = tt.getBestCmap()
     left, right = {}, {}      # model glyph -> Greek glyphs taking that side
     done = 0
-    for ch, (l, r) in SIDES.items():
+    sides = dict(SIDES)
+    for ch, base in (accented or {}).items():
+        l, r = base if isinstance(base, tuple) else (base, base)
+        sides[ch] = (l and SIDES[l][0], r and SIDES[r][1])
+    for ch, (l, r) in sides.items():
         g = cmap.get(ord(ch))
         if g is None:
             continue

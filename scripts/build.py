@@ -1,5 +1,6 @@
 """Build odv Grotesk from Schibsted Grotesk: reshaped I, a, e plus the added glyphs,
-with the Greek letters kerned like their Latin models (scripts/kern.py).
+Greek accents (scripts/accents.py), and the Greek letters kerned like their Latin
+models (scripts/kern.py).
 
     python3 scripts/build.py            # draw the added glyphs, then build all styles
     python3 scripts/build.py --no-draw  # build from sources/*.ufo as they are
@@ -18,12 +19,13 @@ from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.ttLib import TTFont
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import accents  # noqa: E402
 import draw  # noqa: E402
 import kern  # noqa: E402
 import modify  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-VERSION = '0.3.3'
+VERSION = '0.3.4'
 FAMILY = 'odv Grotesk'
 PS_FAMILY = 'odvGrotesk'
 UPSTREAM_COMMIT = 'd485f61f105e1b3935f4d21dfb4d371359798603'  # Schibsted Grotesk 1.100
@@ -135,7 +137,8 @@ def build(style, redraw):
     tt = TTFont(src)
     modify.modify(tt, draw.Font(src), src)
     added = merge(tt, ufoLib2.Font.open(ufo_path))
-    kerned = kern.kern(tt)
+    accented = accents.accents(tt)
+    kerned = kern.kern(tt, accented)
     rename(tt)
     out = ROOT / 'fonts' / 'ttf' / f'{PS_FAMILY}-{style}.ttf'
     out.parent.mkdir(parents=True, exist_ok=True)

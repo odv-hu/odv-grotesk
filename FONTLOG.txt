@@ -12,6 +12,18 @@ with or endorsed by Schibsted.
 ChangeLog
 ---------
 
+0.3.4 (2026-11-13)
+- Accented Greek (issue #15). The monotonic letters ά έ ή ί ό ύ ώ ϊ ϋ ΐ ΰ,
+  Ά Έ Ή Ί Ό Ύ Ώ Ϊ Ϋ and the spacing ΄ ΅ are added, built from the letter and
+  the font's own acute and dieresis, so typed Greek (λέξη, δέλτα) no longer
+  shows the accent beside the letter. On the capitals the tonos stands to the
+  left of the letter; in ΐ ΰ the dots are spread so the acute stands between
+  them, and the glyph is widened to hold them. The accented letters are
+  kerned like their bases (the capitals not on the tonos side).
+- Every Greek letter now has a top anchor, so combining accents typed after
+  it (ζ́, ξ̈, decomposed input) sit over it, and after a Greek capital the
+  accents take their flatter capital forms, as they do after A-Z.
+
 0.3.3 (2026-11-13)
 - ν (nu) is no longer a copy of v: its left stroke drops straight from the
   x-height and turns through a round bottom, like υ's, into the foot of a
