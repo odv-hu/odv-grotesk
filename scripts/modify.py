@@ -6,7 +6,9 @@
     a  (two-storey forms only) the top of the bowl runs flat out from the stem
        and turns down in a tighter corner, instead of sloping down to the left.
     c  both terminals cut level, like the e.
-    i  the stem a touch heavier than n's (I_STEM); i, í, ï, ij... follow.
+    i j  the stem a touch heavier than n's (I_STEM), the same in both, since
+       they share the dot and usually stand together; í, ï, ĵ, ij, ι and the
+       fi ligatures follow.
     p  the counter moved right until stem and bowl are equally thick at
        mid-height, which also widens the join of bowl and stem.
     ˙  the dot of i and j is a square whose top is level with the top of l.
@@ -43,7 +45,7 @@ from geometry import (bounds, glyph_path, intersect, polygon, rect, slant, subtr
 import pathops
 
 BIG = 10000
-CHANGED = ('I', 'ı', 'e', 'a', 'c', 'p', 'uni0307', 'idieresis', 'f', 't')
+CHANGED = ('I', 'ı', 'ȷ', 'e', 'a', 'c', 'p', 'uni0307', 'idieresis', 'f', 't')
 
 # the a's bowl: where the flat top ends, as a share of the counter's width from
 # the left, and how full the corner is (0.55 is a circle, higher is squarer)
@@ -58,8 +60,9 @@ CONTRAST = 0.87          # thin of o / stem of n to aim for (Akkurat Regular 0.8
 MIN_ERODE = 5            # font units; below this a style is left alone
 
 
-# the i's stem, in stems of n (Akkurat's i is a little heavier than its n: 87 vs 85)
-I_STEM = 1.06
+# the stem of i and j, in stems of n (Akkurat's i is a little heavier than its n: 87 vs 85).
+# At 1.06 the i stood visibly heavier than l and the f of fi beside it (issue #5).
+I_STEM = 87 / 85
 
 # ---------- helpers ----------
 
@@ -198,15 +201,23 @@ def _widen_x(p, d):
     return union(p, p.transform(1, 0, 0, 1, -d, 0), p.transform(1, 0, 0, 1, d, 0))
 
 
-def _i_widen(f):
-    stem = f.hspan('ı', f.xh * 0.5)[0][1]
-    return max(0.0, (I_STEM * f.V - stem) / 2)
+def _i_widen(f, ch='ı'):
+    """How much to add on each side of the stem of `ch` for I_STEM stems of n,
+    measured after the contrast correction thins both by 2 * f.erode."""
+    stem = f.hspan(ch, f.xh * 0.5)[0][1]
+    e2 = 2 * f.erode
+    return max(0.0, (I_STEM * (f.V - e2) + e2 - stem) / 2)
 
 
 def r_dotlessi(f):
     """The stem of i a touch heavier than n's: next to the round letters, whose
     sides are heavier than the straight stems, an i as thick as n looks thin."""
     return _widen_x(f.path('ı'), _i_widen(f)), f.adv('ı'), 0
+
+
+def r_dotlessj(f):
+    """j's stem as heavy as i's, so ij and the dots above them match."""
+    return _widen_x(f.path('ȷ'), _i_widen(f, 'ȷ')), f.adv('ȷ'), 0
 
 
 def r_p(f):
@@ -513,7 +524,7 @@ def r_a(f):
     return out, f.adv('a'), 0
 
 
-RECIPES = {'I': r_I, 'ı': r_dotlessi, 'p': r_p, 'e': r_e, 'a': r_a, 'c': r_c, 'uni0307': r_dot,
+RECIPES = {'I': r_I, 'ı': r_dotlessi, 'ȷ': r_dotlessj, 'p': r_p, 'e': r_e, 'a': r_a, 'c': r_c, 'uni0307': r_dot,
            'idieresis': r_idieresis, 'f': r_f, 't': r_t}
 
 
