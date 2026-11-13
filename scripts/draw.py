@@ -262,13 +262,18 @@ def r_eta(f):
 
 
 def r_tau(f):
-    t = intersect(f.path('t'), rect(-BIG, -BIG, BIG, f.xh))
+    """τ: t below the x-height, with a crossbar that runs out clearly on both
+    sides and a foot that stops well short of it. t's foot ends right under the
+    end of its bar, so on t's own bar τ read as ι with a flag on the left."""
+    t = intersect(f.path('t'), rect(-BIG, -BIG, BIG, f.xh - f.H / 2))   # cut mid-bar: not on its edge
     stem = f.hspan('t', f.xh * 0.5)[0]
     sc = stem[0] + stem[1] / 2
     bar = f.hspan('t', f.xh - f.H / 2)[0]
-    reach = max(bar[0] + bar[1] - sc, sc - bar[0])     # make the bar symmetric
+    reach = 1.1 * max(bar[0] + bar[1] - sc, sc - bar[0])           # a little wider than t's, symmetric
+    foot = round(sc + stem[1] / 2 + 0.5 * (reach - stem[1] / 2))  # foot cut off square here
+    t = intersect(t, rect(-BIG, -BIG, foot, BIG))
     out = union(t, rect(sc - reach, f.xh - f.H, sc + reach, f.xh))
-    return f.fit(out, f.SBd, f.SBd)
+    return f.fit(out, f.lsb('t'), f.rsb('t'))                      # spaced like t
 
 
 def _cup(f):

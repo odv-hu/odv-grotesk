@@ -17,6 +17,10 @@ ChangeLog
   x-height and turns through a round bottom, like υ's, into the foot of a
   steeper right arm, so ν = 0.3 (Poisson's ratio) can't be read as v = 0.3.
   Spaced like n on the left and like v on the right, in every style.
+- τ (tau) no longer reads as ι: its crossbar is a tenth wider than t's and
+  symmetric about the stem, and the foot stops halfway out to the end of the
+  bar instead of right under it, so the bar clearly overhangs on both sides.
+  Spaced like t.
 - Italics: the drawn Greek and maths glyphs were spaced as if the italic
   were slanted about the baseline, but Schibsted's is slanted about
   mid-x-height, so their right sidebearings came out about 230 units too
