@@ -38,7 +38,7 @@ The changes are recipes in [`scripts/modify.py`](scripts/modify.py), applied to 
 
 ## Download
 
-Built fonts are on the [Releases page](https://github.com/odv-hu/odv-grotesk/releases), one release per version: `odvGrotesk-*.woff2` for the web, `odvGrotesk-*.ttf` for macOS and LuaLaTeX, or a zip with both.
+Built fonts are on the [Releases page](https://github.com/odv-hu/odv-grotesk/releases), one release per version: `odvGrotesk-*.woff2` for the web, `odvGrotesk-*.ttf` for macOS and LuaLaTeX, `odvMath-Regular.otf` / `.woff2` (the maths font, below), or a zip with all of them and their licences.
 They are not kept in git.
 
 To release a version: set `VERSION` in `scripts/build.py`, add its entry to `FONTLOG.txt`, commit, then push the tag `v<version>`.
@@ -69,6 +69,10 @@ python3 scripts/build.py --no-draw    # build from the UFOs as they are (after h
 python3 scripts/build.py Regular      # one style
 ```
 
+## odv Math
+
+The equations go with odv Grotesk in Computer Modern. **odv Math** is New Computer Modern Math Book enlarged to 112 %, the size at which odv-latex sets it next to the grotesk, so Keynote and odv.hu (where it can be MathML's `math` font) get the same size from the same file at its nominal size. [`scripts/odvmath.py`](scripts/odvmath.py) downloads the pinned New Computer Modern and changes only `unitsPerEm` (1000 → 893): the outlines, metrics and `MATH` table are New Computer Modern's. It is renamed and keeps its own licence, the GUST Font License; `GUST-FONT-LICENSE.txt` and `README-odvMath.txt` come with it in the release.
+
 ## Maths in LaTeX
 
 odv Grotesk is a text font, not a maths font: it has no maths spacing, italic correction or script sizes, so equations stay in Computer Modern.
@@ -80,3 +84,4 @@ The Greek letters here are for running text, Keynote and the website.
 
 SIL Open Font License 1.1, see [OFL.txt](OFL.txt); changes are logged in [FONTLOG.txt](FONTLOG.txt).
 The original design is © 2023 The Schibsted-Grotesk Project Authors.
+odv Math is under the GUST Font License, as New Computer Modern (© Antonis Tsolomitis, after Computer Modern by Donald E. Knuth) is.

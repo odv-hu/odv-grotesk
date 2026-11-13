@@ -1,7 +1,8 @@
 # Release: push a tag like v0.3.1 (e.g. from Fork: New Tag… → push), or run it by hand from the
 # Actions tab for a tag that has no release yet. VERSION in scripts/build.py must match the tag.
-# The workflow builds every style from the committed UFOs (build.py --no-draw) and publishes a
-# GitHub release with the woff2 and ttf files, a zip of both with the licence, and the FONTLOG
+# The workflow builds every style from the committed UFOs (build.py --no-draw) and odv Math
+# (scripts/odvmath.py, from the pinned New Computer Modern), and publishes a
+# GitHub release with the woff2, ttf and otf files, a zip of both with the licence, and the FONTLOG
 # entry for that version as notes. It never replaces an existing release.
 name: Release
 
@@ -56,6 +57,7 @@ jobs:
         run: |
           pip install -r requirements.txt
           python3 scripts/build.py --no-draw
+          python3 scripts/odvmath.py
           mkdir -p dist
           zip -qrX "dist/odvGrotesk-$VERSION.zip" fonts OFL.txt FONTLOG.txt README.md
 
@@ -77,9 +79,11 @@ jobs:
             echo
             echo "- \`odvGrotesk-*.woff2\`: web fonts (odv.hu)"
             echo "- \`odvGrotesk-*.ttf\`: macOS, Keynote and LuaLaTeX"
-            echo "- \`odvGrotesk-$VERSION.zip\`: both, with the licence and FONTLOG"
+            echo "- \`odvMath-Regular.otf\`, \`odvMath-Regular.woff2\`: the maths font, New Computer Modern Math Book at 112 %"
+            echo "- \`odvGrotesk-$VERSION.zip\`: all of them, with the licences and FONTLOG"
             echo
-            echo "SIL Open Font License 1.1. Based on Schibsted Grotesk."
+            echo "odv Grotesk: SIL Open Font License 1.1, based on Schibsted Grotesk."
+            echo "odv Math: GUST Font License, based on New Computer Modern."
           } > notes.md
           cat notes.md
 
@@ -87,5 +91,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$TAG" fonts/webfonts/*.woff2 fonts/ttf/*.ttf "dist/odvGrotesk-$VERSION.zip" \
+          gh release create "$TAG" fonts/webfonts/*.woff2 fonts/ttf/*.ttf fonts/otf/*.otf "dist/odvGrotesk-$VERSION.zip" \
             --title "odv Grotesk $VERSION" --notes-file notes.md
