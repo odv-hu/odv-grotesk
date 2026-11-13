@@ -23,6 +23,13 @@ ChangeLog
 - Every Greek letter now has a top anchor, so combining accents typed after
   it (ζ́, ξ̈, decomposed input) sit over it, and after a Greek capital the
   accents take their flatter capital forms, as they do after A-Z.
+- Added odv Math (issue #16): New Computer Modern Math Book 8.1.1 by Antonis
+  Tsolomitis, enlarged to 112 %, the size at which odv-latex sets it next to
+  odv Grotesk, so Keynote and the web get it at that size too. Only
+  unitsPerEm changes (1000 -> 893); outlines, metrics and the MATH table are
+  New Computer Modern's. Renamed, as the GUST Font License asks; it stays
+  under that licence, with GUST-FONT-LICENSE.txt and README-odvMath.txt in
+  the release. Built by scripts/odvmath.py from the pinned upstream file.
 
 0.3.3 (2026-11-13)
 - ν (nu) is no longer a copy of v: its left stroke drops straight from the

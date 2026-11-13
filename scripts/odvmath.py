@@ -28,7 +28,7 @@ SCALE = 1.12                      # = odv.sty's default mathscale
 FAMILY, PS_NAME = 'odv Math', 'odvMath-Regular'
 NEWCM_VERSION = '8.1.1'           # CTAN keeps only the latest: a new upstream fails the hash
 NEWCM_URL = 'https://mirrors.ctan.org/fonts/newcomputermodern/otf/NewCMMath-Book.otf'
-NEWCM_SHA256 = None               # pin on the first download; see check()
+NEWCM_SHA256 = '2ea09ebc9167b1e1a66f31390dc917f2d4004ecfca72d51b28010e4ad6becd95'  # 8.1.1, licence checked: GFL
 NEWCM_LICENSE_URL = 'https://mirrors.ctan.org/fonts/newcomputermodern/License.txt'
 GFL_URL = 'https://tug.org/fonts/licenses/GUST-FONT-LICENSE.txt'
 SOURCE = ('New Computer Modern Math Book {v} by Antonis Tsolomitis '
