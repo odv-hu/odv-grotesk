@@ -52,7 +52,9 @@ Stem widths, heights and sidebearings are measured from each style of the font, 
 The result goes into `sources/<style>.ufo`, which opens in any font editor.
 A glyph finished by hand goes into `sources/hand-edited.txt`, and the script leaves it alone from then on.
 
-[`scripts/build.py`](scripts/build.py) downloads the pinned Schibsted Grotesk release, merges the glyphs from the UFOs, renames the family and writes:
+The Greek letters are kerned like Latin letters with the same sides: [`scripts/kern.py`](scripts/kern.py) puts Τ in T's kerning classes, Λ in A's, Γ in E's on the left and T's on the right, and so on, so `ΓΑΤΑ` sits like `AVATAR`.
+
+[`scripts/build.py`](scripts/build.py) downloads the pinned Schibsted Grotesk release, merges the glyphs from the UFOs, adds the Greek kerning, renames the family and writes:
 
 - `fonts/ttf/odvGrotesk-*.ttf` for macOS and LuaLaTeX,
 - `fonts/webfonts/odvGrotesk-*.woff2` for the website.

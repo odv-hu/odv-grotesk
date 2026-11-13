@@ -35,6 +35,18 @@ ChangeLog
   almost upright and the right leg reached a third as far as in the upright
   styles. The feet and the spacing are where they were; the top sits about
   125 units further left.
+- Kerning for the Greek letters (issue #4). Only punctuation was kerned
+  against Schibsted's eight (Δ Π Σ Ω α β μ π) and nothing against the added
+  ones, so ΓΑΤΑ and ΤΥΠΟΣ had wide gaps where AVATAR sits tight. Each Greek
+  letter now takes each side's kerning from the Latin letter with the same
+  side: Α-Χ from their Latin twins, Γ from E on the left and T on the right,
+  Λ and Δ from A, Θ Φ Ω θ from O, Π from H, ο φ from o, and so on (the
+  table is in scripts/kern.py). δ ζ λ, whose strokes rise to the ascender,
+  take b's light kerning on the left so they don't run into T's arm, and
+  ζ's right side is left unkerned. Schibsted's
+  own pairs for its eight Greek letters (with quotes, figures, dashes, and
+  among themselves in Bold) are kept as they were. Latin kerning is
+  unchanged.
 
 0.3.2 (2026-11-12)
 - Font files: head.fontRevision is now 0.302 (it dropped the patch number,
