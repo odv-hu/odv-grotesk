@@ -27,6 +27,14 @@ ChangeLog
   tight (τ ran into the next letter) and ∃ was shifted right. Φ Ψ γ δ ε ζ θ
   λ σ τ φ χ ψ ω ϕ ϵ ∈ ∃ are now spaced like their upright forms. The upright
   styles are unchanged.
+- σ: the end of its bar is spaced like the end of t's bar (it had about half
+  that), so it no longer runs into the bar of a following τ; στ are 20-30
+  units further apart in every style. The bar is shorter by the same amount,
+  so the bowl is as far from the next letter as before.
+- Italic λ keeps 60% of the slant. Slanted in full, its long stroke stood
+  almost upright and the right leg reached a third as far as in the upright
+  styles. The feet and the spacing are where they were; the top sits about
+  125 units further left.
 
 0.3.2 (2026-11-12)
 - Font files: head.fontRevision is now 0.302 (it dropped the patch number,
