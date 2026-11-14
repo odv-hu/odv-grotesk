@@ -12,6 +12,24 @@ with or endorsed by Schibsted.
 ChangeLog
 ---------
 
+0.3.6 (2026-11-14)
+- s: both terminals are cut level at the height of their inner corners, as
+  in e and c, instead of on a slant; the outer edge runs on along its own
+  direction to the cut. The spine is unchanged.
+- a (upright styles): the terminal at the top of the arch is cut level at
+  the height of its tip, instead of on a slant; the wedge under the tip is
+  taken off, so the inner edge keeps its curve.
+- Kerning: Schibsted kerned round lowercase pairs apart (o b p before
+  o d c e q by 40-70 units), so pod and boo sat looser than no and much
+  looser than oz. These pairs are now unkerned: two rounds sit a little
+  closer than a round and a stem, as the sidebearings alone give. The
+  kerning that pulls z towards o c e s is halved with it, so poz is even
+  and ezzel holds together. The Greek letters in the same classes follow.
+- The square dot overhangs the stem of i by the same amount on each side in
+  every weight (12/2048 em): unchanged in Regular and Medium to a unit or
+  two, 3% larger in Bold (276 units against 268). The full stop, comma,
+  quotes and dieresis follow.
+
 0.3.5 (2026-11-13)
 - a (issue #19): the corner where the flat top of the bowl turns down is
   rounder and no longer has a point where the bend starts. Its curvature

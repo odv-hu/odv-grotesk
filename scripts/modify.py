@@ -7,8 +7,11 @@
        and turns down in a rounder corner, instead of sloping down to the left.
        The corner is curvature-continuous (scripts/fair.py): the bend eases in
        from the flat and out into the bowl, with no point where it visibly
-       starts (issue #19).
+       starts (issue #19). The terminal at the top is cut level, at the height
+       of its tip (A_TERMINAL), instead of on a slant.
     c  both terminals cut level, like the e.
+    s  both terminals cut level at the height of their inner corners, like e and
+       c, instead of on a slant; the spine is left as it is.
     i j  the stem a touch heavier than n's (I_STEM), the same in both, since
        they share the dot and usually stand together; í, ï, ĵ, ij, ι and the
        fi ligatures follow.
@@ -22,9 +25,9 @@
        back to Schibsted's proportion to the stem, so these letters are not darker
        than their neighbours.
     ˙  the dot of i and j is a square whose top is level with the top of l.
-       It is a little wider than the stem, relatively wider in light weights
-       and narrower in heavy ones (as in Akkurat: 1.32 at Light, 1.14 at
-       Regular, 1.06 at Bold). It is the same glyph as the dot accent and the
+       It overhangs the stem by the same amount on each side in every weight
+       (DOT_OVERHANG), so it is relatively wider in light weights and closer
+       to the stem in heavy ones. It is the same glyph as the dot accent and the
        two dots of the dieresis (ä ö ü ...), so those turn square with it; ï
        has its own outline and is squared the same way.
     f t  in the italics, the upright f and t slanted, instead of the cursive
@@ -32,7 +35,7 @@
 
 Contrast: Schibsted's heavier weights put nearly all their extra weight into
 the verticals, so horizontals look thin next to the stems (in Bold the bar of
-e is 0.57 of the stem, Akkurat Bold's 0.73). Where a style's contrast (thin
+e is 0.57 of the stem, against 0.81 in Regular). Where a style's contrast (thin
 of o / stem of n) is below CONTRAST, every outline is thinned horizontally,
 which narrows verticals and leaves horizontals as they are, until it reaches
 it; dots keep their shape. Advances stay, so the letters gain the removed
@@ -61,7 +64,7 @@ import pathops
 import fair
 
 BIG = 10000
-CHANGED = ('I', 'ı', 'ȷ', 'e', 'a', 'c', 'p', 'uni0307', 'idieresis', 'f', 't', 'z', 'E', 'F', 'T', 'Z', 'L', 'H',
+CHANGED = ('I', 'ı', 'ȷ', 'e', 'a', 'c', 's', 'p', 'uni0307', 'idieresis', 'f', 't', 'z', 'E', 'F', 'T', 'Z', 'L', 'H',
            '!', '?', '¡', '¿', 'exclamdown.case', 'questiondown.case', '.', ',', '‘', '“')
 
 # the a's bowl: where the flat top starts, as a share of the counter's width from
@@ -71,16 +74,25 @@ CHANGED = ('I', 'ı', 'ȷ', 'e', 'a', 'c', 'p', 'uni0307', 'idieresis', 'f', 't'
 A_FLAT_IN = 0.65
 A_FLAT_OUT = 0.75
 
-# the square dot: width in stems of dotless i, against the stem in thousandths of the em
-DOT_SIDE = ((50, 1.32), (85, 1.14), (125, 1.06))
+# the a's top terminal is cut level: at the height of its outer corner (1.0), of its
+# inner corner (0.0, as e c s), or between. 1.0 keeps the tip where it is and takes
+# the slanted wedge off under it.
+A_TERMINAL = 1.0
 
-CONTRAST = 0.87          # thin of o / stem of n to aim for (Akkurat Regular 0.86, Bold 0.87)
+# the square dot overhangs the stem of dotless i by this much on each side, in
+# 2048ths of the em, in every weight: 192 units wide in Regular, 276 in Bold.
+DOT_OVERHANG = 12
+
+# thin of o / stem of n to aim for: about the contrast Schibsted drew its own Italic
+# with (0.86; Regular has 0.83, Bold 0.73), where bars and stems read as one weight
+CONTRAST = 0.87
 MIN_ERODE = 5            # font units; below this a style is left alone
 
 
-# the stem of i and j, in stems of n (Akkurat's i is a little heavier than its n: 87 vs 85).
-# At 1.06 the i stood visibly heavier than l and the f of fi beside it (issue #5).
-I_STEM = 1.045            # 87/85 looked thin beside n and l, 1.06 too heavy (issue #5)
+# the stem of i and j, in stems of n: a touch heavier, so they don't read thin next to
+# round letters. 1.024 looked thin beside n and l; at 1.06 the i stood visibly heavier
+# than l and the f of fi beside it (issue #5).
+I_STEM = 1.045
 
 # ---------- helpers ----------
 
@@ -224,18 +236,22 @@ def r_I(f):
     return stem, round(lsb + (x1 - x0) + rsb), lsb - x0
 
 
-def _level_terminals(f, ch):
-    """Cut each slanted terminal of `ch` level, at the height of its inner corner;
-    the outer edge is carried on along its own direction to meet the new cut."""
+def _terminal_cuts(f, ch, select=None):
+    """The slanted terminal cuts of `ch`, in upright space, as (inner corner, outer
+    corner, direction of the outer edge at the outer corner). By default the cuts
+    on the right half of the letter (e, c); `select(a, b, bounds)` picks others."""
     glyph = f.path(ch)
     rec = DecomposingRecordingPen(f.gs)
     f.gs[f.name(ch)].draw(rec)
-    x0, y0, x1, y1 = bounds(glyph)
+    bb = bounds(glyph)
+    x0, y0, x1, y1 = bb
     cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    if select is None:
+        select = lambda a, b, bb: a[0] > cx and b[0] > cx
     # glyph_path un-slants with this shear; replay it on the raw points
     sh = math.tan(math.radians(f.italic))
     un = lambda p: (p[0] - p[1] * sh, p[1])
-    cuts = []
+    found = []
     cur = start = None
     for op, args in rec.value:
         pts = [un(a) for a in args if a is not None]
@@ -244,25 +260,62 @@ def _level_terminals(f, ch):
             continue
         if op in ('lineTo', 'closePath', 'endPath'):
             nxt = pts[0] if op == 'lineTo' else start
-            if (cur[0] > cx and nxt[0] > cx and abs(cur[0] - nxt[0]) > 5
-                    and abs(cur[1] - nxt[1]) > 5):
-                cuts.append((cur, nxt))
+            if (abs(cur[0] - nxt[0]) > 5 and abs(cur[1] - nxt[1]) > 5
+                    and select(cur, nxt, bb)):
+                found.append((cur, nxt))
             cur = nxt
         else:
             cur = pts[-1]
-    if not cuts:
+    if not found:
         raise ValueError(f'{ch}: no slanted terminal found')
-    out = glyph
-    for a, b in cuts:
+    cuts = []
+    for a, b in found:
         # the inner corner is the one nearer the middle of the letter
         da = math.hypot(a[0] - cx, a[1] - cy)
         db = math.hypot(b[0] - cx, b[1] - cy)
         p_in, p_out = (a, b) if da < db else (b, a)
-        tang = _outer_tangent(rec, p_out, un)
-        dy = p_in[1] - p_out[1]
-        ext = (p_out[0] + tang[0] / tang[1] * dy, p_in[1])
-        out = union(out, polygon(p_in, ext, p_out))
+        cuts.append((p_in, p_out, _outer_tangent(rec, p_out, un)))
+    return cuts
+
+
+def _cut_level(glyph, p_in, p_out, tang, at=0.0):
+    """Recut one slanted terminal level. `at` places the new cut between the height
+    of the inner corner (0) and of the outer corner (1). Below the outer corner the
+    outer edge is carried on along its own direction to the new cut; above the
+    inner corner what lies beyond the new cut is taken off, up to the inner edge."""
+    y_in, y_out = p_in[1], p_out[1]
+    y = y_in + at * (y_out - y_in)
+    on_cut = lambda yy: p_out[0] + (p_in[0] - p_out[0]) * (yy - y_out) / (y_in - y_out)
+    out = glyph
+    if at < 1:                                  # outer edge carried on to the cut
+        ext = (p_out[0] + tang[0] / tang[1] * (y - y_out), y)
+        out = union(out, polygon((on_cut(y), y), ext, p_out))
+    if at > 0:                                  # the inner corner trimmed back to it
+        d = math.copysign(BIG, p_in[0] - p_out[0])
+        band = polygon((on_cut(y), y), p_in, (p_in[0] + d, y_in), (p_in[0] + d, y))
+        # only the piece at this terminal, not other strokes the band crosses
+        for piece in _contours(intersect(out, band)):
+            px0, py0, px1, py1 = piece.bounds
+            if px0 - 1 <= p_in[0] <= px1 + 1 and py0 - 1 <= p_in[1] <= py1 + 1:
+                out = subtract(out, piece)
     return out
+
+
+def _level_terminals(f, ch, select=None, at=0.0, glyph=None):
+    """Cut the slanted terminals of `ch` level (_cut_level), by default at the height
+    of the inner corner, the outer edge carried on along its own direction."""
+    out = glyph if glyph is not None else f.path(ch)
+    for p_in, p_out, tang in _terminal_cuts(f, ch, select):
+        out = _cut_level(out, p_in, p_out, tang, at)
+    return out
+
+
+def _at_side(a, b, bb):
+    """A terminal cut that reaches the left or right side of the letter (s, and the
+    a's top), not a straight piece of a spine."""
+    x0, _, x1, _ = bb
+    tol = 0.06 * (x1 - x0)
+    return min(abs(p[0] - x) for p in (a, b) for x in (x0, x1)) < tol
 
 
 def r_e(f):
@@ -273,19 +326,14 @@ def r_c(f):
     return _level_terminals(f, 'c'), f.adv('c'), 0
 
 
+def r_s(f):
+    """Both terminals cut level at the height of their inner corners, as in e and c."""
+    return _level_terminals(f, 's', _at_side), f.adv('s'), 0
+
+
 def _dot_side(f):
     stem = f.hspan('ı', f.xh / 2)[0][1] - 2 * f.erode
-    t = stem / f.tt['head'].unitsPerEm * 1000
-    pts = DOT_SIDE
-    if t <= pts[0][0]:
-        k = pts[0][1]
-    elif t >= pts[-1][0]:
-        k = pts[-1][1]
-    else:
-        for (a, ka), (b, kb) in zip(pts, pts[1:]):
-            if a <= t <= b:
-                k = ka + (kb - ka) * (t - a) / (b - a)
-    return k * stem
+    return stem + 2 * DOT_OVERHANG * f.tt['head'].unitsPerEm / 2048
 
 
 def _square_dots(f, p, above):
@@ -897,10 +945,12 @@ def r_a(f):
     c = union(subtract(inner, rect(ix0 - 10, s_in[1], xf_in, iy1)),
               _corner(s_in[0], s_in[1], x_ti, iy1, xf_in, k_in, dk_in))
     out = subtract(o, c)
+    # the top terminal cut level, at the height of its outer corner (A_TERMINAL)
+    out = _level_terminals(f, 'a', _at_side, A_TERMINAL, glyph=out)
     return out, f.adv('a'), 0
 
 
-RECIPES = {'I': r_I, 'ı': r_dotlessi, 'ȷ': r_dotlessj, 'p': r_p, 'e': r_e, 'a': r_a, 'c': r_c, 'uni0307': r_dot,
+RECIPES = {'I': r_I, 'ı': r_dotlessi, 'ȷ': r_dotlessj, 'p': r_p, 'e': r_e, 'a': r_a, 'c': r_c, 's': r_s, 'uni0307': r_dot,
            'idieresis': r_idieresis, 'f': r_f, 't': r_t}
 for _ch in BARRED:
     RECIPES[_ch] = (lambda ch: lambda f: r_bars(f, ch))(_ch)
