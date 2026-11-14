@@ -1,6 +1,6 @@
 """Build odv Grotesk from Schibsted Grotesk: reshaped I, a, e plus the added glyphs,
 Greek accents (scripts/accents.py), and the Greek letters kerned like their Latin
-models (scripts/kern.py).
+models, round lowercase pairs no longer kerned apart (scripts/kern.py).
 
     python3 scripts/build.py            # draw the added glyphs, then build all styles
     python3 scripts/build.py --no-draw  # build from sources/*.ufo as they are
@@ -25,7 +25,7 @@ import kern  # noqa: E402
 import modify  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-VERSION = '0.3.5'
+VERSION = '0.3.6'
 FAMILY = 'odv Grotesk'
 PS_FAMILY = 'odvGrotesk'
 UPSTREAM_COMMIT = 'd485f61f105e1b3935f4d21dfb4d371359798603'  # Schibsted Grotesk 1.100
@@ -133,6 +133,7 @@ def build(style, redraw):
     added = merge(tt, ufoLib2.Font.open(ufo_path))
     accented = accents.accents(tt)
     kerned = kern.kern(tt, accented)
+    kern.even_rounds(tt)
     hand = ROOT / 'sources' / 'hand-edited.txt'
     skip = {ln.strip() for ln in hand.read_text().splitlines()
             if ln.strip() and not ln.startswith('#')} if hand.exists() else set()

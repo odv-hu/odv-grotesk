@@ -7,6 +7,13 @@ pairs (exceptions) and a subtable of class pairs. A Greek letter is put into the
 same left/right classes as its Latin model, and every exception that involves the
 model is copied for it, so Greek pairs, and mixed Greek and Latin pairs, kern
 exactly like the Latin pairs they look like.
+
+It also takes out Schibsted's opening of round lowercase pairs (even_rounds): Schibsted
+kerns o, b, p apart from a following o, d, c, e, q by 40-70 units, so `pod` and
+`boo` sit looser than `no` and much looser than `oz`, which it kerns together.
+Two rounds need a little less space between them than a round and a stem, since
+they curve away from each other; Schibsted's sidebearings alone already give that. The kerning that pulls z towards o, e, c and s is halved
+with it, so o-z does not end up much tighter than p-o.
 """
 import copy
 
@@ -49,6 +56,19 @@ SIDES = {
     'φ': ('o', 'o'), 'ϕ': ('o', 'o'),
     'χ': ('x', 'x'),
 }
+
+
+# even_rounds: first glyphs whose right side is round, second glyphs whose left side
+# is; their class pairs (and exceptions) are scaled by ROUND_KERN where positive.
+ROUND_RIGHT = 'op'          # with b, þ, ð, ρ, ö … in the same classes
+ROUND_LEFT = 'odeq'         # with c, ο, ε, σ, ö … in the same classes
+ROUND_KERN = 0.0
+# and z against rounds: Schibsted kerns them together by 15-50 units, which with the
+# round pairs closed up left o-z much tighter than p-o. Half of it keeps `poz` even
+# without letting `ezzel` fall apart.
+Z_AFTER = 'opce'            # these followed by z
+Z_BEFORE = 'odeqs'          # z followed by these
+Z_KERN = 0.5
 
 
 def _subtables(lookup):
@@ -180,3 +200,41 @@ def kern(tt, accented=None):
         else:
             _classes(tt, sub, left, right, letters)
     return done
+
+
+def _scale_pairs(tt, firsts, seconds, scale, sign):
+    """Scale the kerning of the class pairs of `firsts` followed by `seconds` (letters),
+    and of the exceptions among their class members, where its sign is `sign`."""
+    cmap = tt.getBestCmap()
+    firsts = [cmap[ord(c)] for c in firsts]
+    seconds = [cmap[ord(c)] for c in seconds]
+    subs = [sub for lookup in _kern_lookups(tt) if lookup.LookupType in (2, 9)
+            for sub in _subtables(lookup) if getattr(sub, 'LookupType', 2) == 2]
+    g1, g2, values = set(firsts), set(seconds), []
+    for sub in subs:
+        if sub.Format == 2:
+            c1, c2 = sub.ClassDef1.classDefs, sub.ClassDef2.classDefs
+            rows = {c1.get(g, 0) for g in firsts if g in sub.Coverage.glyphs}
+            cols = {c2.get(g, 0) for g in seconds}
+            assert 0 not in rows and 0 not in cols, 'a letter is in a catch-all class'
+            g1 |= {g for g in sub.Coverage.glyphs if c1.get(g, 0) in rows}
+            g2 |= {g for g, c in c2.items() if c in cols}
+            values += [sub.Class1Record[i].Class2Record[j].Value1 for i in rows for j in cols]
+    for sub in subs:
+        if sub.Format == 1:
+            values += [r.Value1 for f, ps in zip(sub.Coverage.glyphs, sub.PairSet)
+                       for r in ps.PairValueRecord if f in g1 and r.SecondGlyph in g2]
+    changed = 0
+    for v in values:
+        if v is not None and getattr(v, 'XAdvance', 0) * sign > 0:
+            v.XAdvance = round(v.XAdvance * scale)
+            changed += 1
+    return changed
+
+
+def even_rounds(tt):
+    """Round lowercase pairs no longer kerned apart (ROUND_KERN), and z no longer
+    pulled as close to rounds (Z_KERN). Returns the number of values changed."""
+    return (_scale_pairs(tt, ROUND_RIGHT, ROUND_LEFT, ROUND_KERN, +1)
+            + _scale_pairs(tt, Z_AFTER, 'z', Z_KERN, -1)
+            + _scale_pairs(tt, 'z', Z_BEFORE, Z_KERN, -1))
