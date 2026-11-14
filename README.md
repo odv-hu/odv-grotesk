@@ -1,6 +1,7 @@
 # odv Grotesk
 
-Schibsted Grotesk extended with Greek and maths characters, for odv.hu and LaTeX.
+A modified Schibsted Grotesk family, extended with Greek and maths characters.
+Primarily designed for odv.hu and LaTeX writing.
 
 ![odv Grotesk: capitals, lowercase, accents, Greek, figures, punctuation and maths in a grid](preview/glyphs.svg)
 
