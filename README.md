@@ -2,6 +2,8 @@
 
 Schibsted Grotesk extended with Greek and maths characters, for odv.hu and LaTeX.
 
+![odv Grotesk: capitals, lowercase, accents, Greek, figures, punctuation and maths in a grid](preview/glyphs.svg)
+
 [Schibsted Grotesk](https://github.com/schibsted/schibsted-grotesk) covers Latin but has only eight Greek letters (Δ Π Σ Ω α β μ π) and a partial set of maths symbols.
 That is enough for a website, not for technical writing with ζ, χ, κ and ∇ in it.
 odv Grotesk adds the missing characters in the same style, and reshapes a few letters (below); everything else is as it was.
@@ -72,6 +74,7 @@ pip install -r requirements.txt
 python3 scripts/build.py              # draw + build all styles
 python3 scripts/build.py --no-draw    # build from the UFOs as they are (after hand edits)
 python3 scripts/build.py Regular      # one style
+python3 scripts/specimen.py           # redraw preview/glyphs.svg from the built fonts
 ```
 
 ## odv Math
