@@ -12,7 +12,7 @@ with or endorsed by Schibsted.
 ChangeLog
 ---------
 
-Unreleased
+0.3.8 (2026-11-22)
 - Italics: the upright f and t (which replace the cursive forms) sat about
   115 units too far right: the italic is slanted about mid-x-height, and
   Schibsted's italic letters are drawn that far left to allow for it, but
