@@ -29,6 +29,11 @@ Unreleased
   the inner edge eases out towards the outer edge by 8 units at the cut,
   from nothing at the top (and bottom) of the counter. The taper still
   sets the end's weight.
+- Tapered terminals end exactly on their cut: the moved edge is now cut
+  where it crosses the cut line, instead of its last point being pulled
+  onto it. This takes out a small wave just before the cut (most visible
+  at the top of the S in Medium, 8 units) and, in the italic 3, a fold;
+  elsewhere the outlines move by at most a few units.
 
 0.3.7 (2026-11-22)
 - C G S J 2 3 5 6 9: every curved terminal is cut level at the height of

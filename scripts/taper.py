@@ -165,6 +165,21 @@ def _inner_at(inner, y):
     return None
 
 
+def _land(pts, y):
+    """`pts` cut where they first cross height y (going from the first towards the last),
+    or carried on along their last direction to it if they never reach it."""
+    for i in range(1, len(pts)):
+        a, b = pts[i - 1], pts[i]
+        if (a[1] - y) * (b[1] - y) <= 0 and a[1] != b[1]:
+            u = (y - a[1]) / (b[1] - a[1])
+            return pts[:i] + [(a[0] + u * (b[0] - a[0]), y)]
+    a, b = pts[-2], pts[-1]
+    if abs(b[1] - a[1]) > 1e-9:
+        u = (y - b[1]) / (b[1] - a[1])
+        return pts[:-1] + [(b[0] + u * (b[0] - a[0]), y)]
+    return pts
+
+
 def taper(glyph, cs, p_in, p_out, tang, w_end, y=None):
     """`glyph` (already cut level, at height `y`, by default that of p_in) with the
     outer edge eased in so that the end is w_end wide across the stroke. `cs` are the
@@ -225,10 +240,10 @@ def taper(glyph, cs, p_in, p_out, tang, w_end, y=None):
         n = normal(i)
         dl = d_end * _smoother(L[i] / L[-1])
         new.append((q[0] - sign * n[0] * dl, q[1] - sign * n[1] * dl))
-    a, b = new[-2], new[-1]                            # land the end on the cut
-    if abs(b[1] - a[1]) > 1e-9:
-        u = (y - b[1]) / (b[1] - a[1])
-        new[-1] = (b[0] + u * (b[0] - a[0]), y)
+    new = _land(new, y)                                # end exactly on the cut
+    L = [0.0]
+    for i in range(1, len(new)):
+        L.append(L[-1] + math.hypot(new[i][0] - new[i - 1][0], new[i][1] - new[i - 1][1]))
     # cubics through SEGMENTS + 1 nodes, matching position, direction and curvature
     idx = [round(j * (len(new) - 1) / SEGMENTS) for j in range(SEGMENTS + 1)]
 
@@ -310,10 +325,11 @@ def thin_inner(glyph, cs, p_in, p_out, amount, y):
         d = amount * _smoother(L[i] / L[-1])
         new.append((q[0] - sign * n[0] * d, q[1] - sign * n[1] * d))       # into the ink
         back.append((q[0] + sign * n[0] * 12, q[1] + sign * n[1] * 12))   # just inside the counter
-    a, b = new[-2], new[-1]                     # land the end on the cut
-    if abs(b[1] - a[1]) > 1e-9:
-        u = (y - b[1]) / (b[1] - a[1])
-        new[-1] = (b[0] + u * (b[0] - a[0]), y)
+    new = _land(new, y)                         # end exactly on the cut
+    back = back[:len(new)]
+    L = [0.0]
+    for i in range(1, len(new)):
+        L.append(L[-1] + math.hypot(new[i][0] - new[i - 1][0], new[i][1] - new[i - 1][1]))
     idx = [round(j * (len(new) - 1) / SEGMENTS) for j in range(SEGMENTS + 1)]
 
     def jet(i):
