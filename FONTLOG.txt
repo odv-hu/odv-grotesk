@@ -40,6 +40,20 @@ Unreleased
   point where the bend starts. Each starts where the old curve did. This
   touches the hooks of f j t y l and ȷ, g's ear, a's spur, ª, α μ π,
   { } ƒ ∫ √ ℓ @ Q and the drawn ζ ξ ς τ, in every style.
+- s: 3% wider about its centre, its verticals thinned back so the stroke
+  weights stay, the sidebearings kept (Regular 26 units wider). Cut level
+  at both ends it read small beside z. ś š ş ș follow.
+- Č č Ě ě ř Š š Ť Ž ž ǎ Ǧ are drawn by Schibsted as one outline each, so
+  they did not follow what odv changes in their letters (level cuts, the
+  a's top, the bars of E T Z z, the r's arm). They are rebuilt as the
+  letter and the caron mark, which their carons are to a unit.
+- Shoulders in Medium, Bold and their italics: where an arch or bowl meets
+  a straight stem (n h m u r, b d p q), the contrast thinning moved the
+  arch's outer edge in all the way to the stem, so the junction came out
+  about half the weight of the arch's top. The arch is now thinned less
+  and less towards the stem, easing from all of it at the top of the arch
+  to nothing at the crotch, without a step in direction or curvature.
+  The junction keeps Schibsted's weight and the notch about his depth.
 - Crotches in Medium, Bold and their italics: where a curve meets another
   stroke (b d p q n h m u r a, 6 9 & $ ð æ), the contrast thinning moved
   the two sides apart and joined them with a short flat (46 units wide in

@@ -11,7 +11,8 @@
        of its tip (A_TERMINAL), instead of on a slant.
     c  both terminals cut level, like the e.
     s  both terminals cut level at the height of their inner corners, like e and
-       c, instead of on a slant; the spine is left as it is.
+       c, instead of on a slant; the spine is left as it is. Then S_WIDTH as
+       wide, so it does not read small beside z.
     C G S J 2 3 5 6 9  the same: every curved terminal cut level at the height
        of its inner corner (LEVEL_CUTS), in the default, tabular and numerator
        figures; superiors and fractions are made of the numerators and follow.
@@ -53,7 +54,12 @@ it; dots keep their shape. Advances stay, so the letters gain the removed
 width as sidebearing. In practice this touches Medium and Bold. Where a curve
 meets another stroke in a crotch (b d p q n h m u r a, 6 9 & $), the two thinned
 sides are carried on until they meet in a point again (CROTCH_MEET), instead of
-being joined by a short flat.
+being joined by a short flat. Where the other stroke is a straight stem (the
+shoulders of n h m u r, the bowls of b d p q), the curve's move eases out to
+nothing at the crotch (SHOULDER_EASE), so the junction keeps its weight.
+
+Č č Ě ě ř Š š Ť Ž ž ǎ Ǧ are single outlines in Schibsted; they are rebuilt as the
+letter and the caron mark first (_compose_carons), so they follow the letters.
 
 Rule 4 runs over the whole font after the merge (ease_corners, from build.py):
 quarter turns between two straight edges are redrawn as fair corners.
@@ -98,6 +104,10 @@ A_FLAT_OUT = 0.75
 # inner corner (0.0, as e c s), or between. 1.0 keeps the tip where it is and takes
 # the slanted wedge off under it.
 A_TERMINAL = 1.0
+
+# the s, cut level at both ends and so a little lighter at its ends, read small beside
+# the z: this much wider, with its stroke weights kept
+S_WIDTH = 1.03
 
 # a level-cut curved stroke tapers from the extreme of its bowl to the cut (taper.py),
 # so its end is this far from the thin (0) to the side (1) of the matching round:
@@ -473,8 +483,24 @@ def r_c(f):
 
 
 def r_s(f):
-    """Both terminals cut level at the height of their inner corners, as in e and c."""
-    return _level_terminals(f, 's', _at_side), f.adv('s'), 0
+    """Both terminals cut level at the height of their inner corners, as in e and c;
+    then S_WIDTH as wide about its centre, the verticals thinned back to their weight
+    (erode_x), the sidebearings kept."""
+    out = _level_terminals(f, 's', _at_side)
+    if S_WIDTH == 1:
+        return out, f.adv('s'), 0
+    x0, _, x1, _ = bounds(out)
+    l0, l1 = _hspan(out, 0.72 * f.xh)[0]
+    side = l1 - l0                             # the upper bowl's left side
+    cx = (x0 + x1) / 2
+    out = transform(out, a=S_WIDTH, e=cx * (1 - S_WIDTH))
+    thin = (S_WIDTH - 1) * side / 2
+    if f.erode:                                # thinned with the rest, in the same pass
+        f.extra_erode[f.name('s')] = thin
+    else:
+        out = erode_x(out, thin)
+    dx = (x1 - x0) * (S_WIDTH - 1) / 2
+    return move(out, dx), round(f.adv('s') + 2 * dx), dx
 
 
 def _dot_side(f):
@@ -666,6 +692,9 @@ def r_t(f):
 BLEND_SPAN = 2.5         # an extreme's blend reaches this many e to either side
 ROUND_CROSSINGS = False  # round off the short flats at inside corners that involve a curve
 CROTCH_MEET = True       # inside corners with a curve: the moved sides meet in a point again
+SHOULDER_EASE = True     # where a curve meets a straight stem in a crotch (the shoulders of
+                         # n h m u r, the bowls of b d p q), the curve's move fades out
+                         # towards the crotch, so the junction keeps Schibsted's weight
 ROUND_SPAN = 1.5         # how far back (in e) a rounded crossing starts on each side
 
 
@@ -761,6 +790,48 @@ def _tangent_at(kind, P, at_end):
     return _jet(kind, P, 1.0 if at_end else 0.0)[1]
 
 
+def _ease_chain(pieces, moved, chain, shift, fwd, N=64):
+    """Move the curve pieces `chain` (listed from a crotch outwards) sideways by `shift`
+    times smoother(distance from the crotch / length of the chain), instead of by all of
+    it: nothing at the crotch, all of it at the far end, with no step in direction or
+    curvature anywhere. Each piece is written as one cubic matching position,
+    direction and curvature of the moved curve at its ends."""
+    samples, lengths = [], []
+    for j in chain:
+        k, P = pieces[j]
+        pts = [_bez(k, P, t / N)[0] for t in range(N + 1)]
+        L = [0.0]
+        for m in range(1, N + 1):
+            L.append(L[-1] + math.hypot(pts[m][0] - pts[m - 1][0], pts[m][1] - pts[m - 1][1]))
+        samples.append(pts)
+        lengths.append(L)
+    total = sum(L[-1] for L in lengths)
+    if total <= 0:
+        return
+    smoother = lambda u: u * u * u * (10 - 15 * u + 6 * u * u)
+    start = 0.0
+    for j, pts, L in zip(chain, samples, lengths):
+        q = []
+        for m, pt in enumerate(pts):
+            d = start + (L[m] if fwd else L[-1] - L[m])        # distance from the crotch
+            q.append((pt[0] + shift * smoother(min(d / total, 1.0)), pt[1]))
+        start += L[-1]
+
+        def jet(m):                        # one-sided, second order, at an end
+            s = 1 if m == 0 else -1
+            a, b, c = q[m], q[m + s], q[m + 2 * s]
+            t = (s * (-3 * a[0] + 4 * b[0] - c[0]), s * (-3 * a[1] + 4 * b[1] - c[1]))
+            n = math.hypot(*t)
+            k = taper._curv3(a, b, c) if s > 0 else taper._curv3(c, b, a)
+            return (t[0] / n, t[1] / n), k
+        (t0, k0), (t1, k1) = jet(0), jet(N)
+        P0, P3 = q[0], q[-1]
+        chord = math.hypot(P3[0] - P0[0], P3[1] - P0[1])
+        a0, a1 = fair.cubic_g2(P0, t0, k0, P3, t1, k1, chord / 3)
+        moved[j] = ('c', [P0, (P0[0] + a0 * t0[0], P0[1] + a0 * t0[1]),
+                          (P3[0] - a1 * t1[0], P3[1] - a1 * t1[1]), P3])
+
+
 def erode_x(p, e):
     """Thin `p` horizontally by `e` on each side: verticals lose 2e, horizontals
     nothing. Each piece of outline between horizontal tangents moves sideways by
@@ -805,6 +876,24 @@ def erode_x(p, e):
         sh = [shift_of(pc) for pc in pieces]
         moved = [(k, [(q[0] + (s or 0.0), q[1]) for q in P]) for (k, P), s in zip(pieces, sh)]
         blends = {}                            # node index -> cubic joining the two sides
+        if SHOULDER_EASE:
+            for i in range(n):
+                a, b = (i - 1) % n, i
+                if (pieces[a][0] == 'l') == (pieces[b][0] == 'l'):
+                    continue
+                if sh[a] is None or sh[b] is None or sh[a] == sh[b]:
+                    continue
+                ta = _tangent_at(pieces[a][0], pieces[a][1], True)
+                tb = _tangent_at(pieces[b][0], pieces[b][1], False)
+                if ta[0] * tb[1] - ta[1] * tb[0] >= 0:
+                    continue                   # not an inside corner
+                fwd = pieces[b][0] != 'l'      # the curve runs away from the crotch
+                s0 = sh[b] if fwd else sh[a]
+                chain, j = [], (b if fwd else a)
+                while pieces[j][0] != 'l' and sh[j] == s0 and len(chain) < n - 1:
+                    chain.append(j)
+                    j = (j + 1) % n if fwd else (j - 1) % n
+                _ease_chain(pieces, moved, chain, s0, fwd)
         for i in range(n):
             a, b = (i - 1) % n, i
             sa, sb = sh[a], sh[b]
@@ -1047,7 +1136,7 @@ def _erode_all(tt, f, e):
         # thinned as drawn: a horizontal shift is the same slanted or not, and the
         # italic's rounds have their vertical extremes as drawn, not un-slanted
         p = glyph_path(gs, name)
-        _put(tt, name, _erode_glyph(p, e, f.V, f.italic), hmtx[name][0])
+        _put(tt, name, _erode_glyph(p, e + f.extra_erode.get(name, 0), f.V, f.italic), hmtx[name][0])
         n += 1
     return n
 
@@ -1656,12 +1745,70 @@ def _place_dot_components(tt, font):
         g.recalcBounds(glyf)
 
 
+# Schibsted draws these as one outline (letter and caron together) instead of the letter
+# with a caron mark, so they would not follow what is done to their letters: they are
+# rebuilt as composites of the letter and uni030C, which their carons are, to a unit
+CARONED = {'Ccaron': 'C', 'ccaron': 'c', 'Ecaron': 'E', 'ecaron': 'e', 'rcaron': 'r',
+           'Scaron': 'S', 'scaron': 's', 'Tcaron': 'T', 'Zcaron': 'Z', 'zcaron': 'z',
+           'uni01CE': 'a', 'Gcaron': 'G'}
+
+
+def _compose_carons(tt):
+    """Rebuild CARONED as composites, where the outline is the letter plus a shifted
+    uni030C (to a unit); returns the names rebuilt."""
+    from fontTools.ttLib.tables._g_l_y_f import Glyph, GlyphComponent
+    glyf, hmtx = tt['glyf'], tt['hmtx']
+    mark = 'uni030C'
+    if mark not in glyf or glyf[mark].isComposite():
+        return []
+
+    def contours(name):
+        g = glyf[name]
+        coords, ends = list(g.coordinates), list(g.endPtsOfContours)
+        out, start = [], 0
+        for e in ends:
+            out.append([tuple(coords[i]) for i in range(start, e + 1)])
+            start = e + 1
+        return out
+    m = contours(mark)
+    if len(m) != 1:
+        return []
+    m = m[0]
+    done = []
+    for name, base in CARONED.items():
+        if name not in glyf or glyf[name].isComposite() or hmtx[name][0] != hmtx[base][0]:
+            continue
+        cs, bs = contours(name), contours(base)
+        extra = [c for c in cs if c not in bs]
+        if len(extra) != 1 or len(cs) != len(bs) + 1 or len(extra[0]) != len(m):
+            continue
+        c = extra[0]
+        dx = min(x for x, _ in c) - min(x for x, _ in m)
+        dy = min(y for _, y in c) - min(y for _, y in m)
+        # the same caron, moved: every point within a unit (Schibsted's rounding)
+        if any(min(abs(x - dx - mx) + abs(y - dy - my) for mx, my in m) > 1 for x, y in c):
+            continue
+        g = Glyph()
+        g.numberOfContours = -1
+        g.components = []
+        for gname, x, y in ((base, 0, 0), (mark, dx, dy)):
+            comp = GlyphComponent()
+            comp.glyphName, comp.x, comp.y, comp.flags = gname, x, y, 0
+            g.components.append(comp)
+        glyf[name] = g
+        g.recalcBounds(glyf)
+        hmtx[name] = (hmtx[name][0], getattr(g, 'xMin', 0))
+        done.append(name)
+    return done
+
+
 def modify(tt, font, src=None):
     """Apply the recipes, then the contrast correction, to `tt` (a TTFont);
     `font` is draw.Font on the same file `src`."""
     font.erode = erosion(font)
+    font.extra_erode = {}                      # glyph -> thinning on top of font.erode
     font.upright = _upright_of(src) if src else None
-    done = []
+    done = _compose_carons(tt)
     for ch in CHANGED:
         name = font.name(ch)
         r = RECIPES[ch](font)
