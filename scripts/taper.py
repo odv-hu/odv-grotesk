@@ -150,17 +150,38 @@ def _smoother(u):
     return u * u * u * (10 - 15 * u + 6 * u * u)
 
 
-def taper(glyph, cs, p_in, p_out, tang, w_end):
-    """`glyph` (already cut level at the height of p_in) with the outer edge eased in
-    so that the end is w_end wide across the stroke. `cs` are the contours of the
-    glyph before the cut, p_in and p_out the inner and outer corner of the old cut,
-    `tang` the outer edge's direction at p_out."""
+def _inner_at(inner, y):
+    """Where the inner edge, followed away from the cut, first reaches height y, and
+    its direction there pointing back towards the cut."""
+    prev = _eval(inner[0], 0.0)[0]
+    for s in inner:
+        n = max(8, int(_length(s) / STEP))
+        for j in range(1, n + 1):
+            p = _eval(s, j / n)[0]
+            if (prev[1] - y) * (p[1] - y) <= 0 and p[1] != prev[1]:
+                u = (y - prev[1]) / (p[1] - prev[1])
+                return ((prev[0] + u * (p[0] - prev[0]), y), _unit((prev[0] - p[0], prev[1] - p[1])))
+            prev = p
+    return None
+
+
+def taper(glyph, cs, p_in, p_out, tang, w_end, y=None):
+    """`glyph` (already cut level, at height `y`, by default that of p_in) with the
+    outer edge eased in so that the end is w_end wide across the stroke. `cs` are the
+    contours of the glyph before the cut, p_in and p_out the inner and outer corner
+    of the old cut, `tang` the outer edge's direction at p_out."""
     found = edges(cs, p_in, p_out)
     if found is None:
         return glyph
     outer, inner = found
     t_in = inner_direction(inner)
-    y = p_in[1]
+    if y is None or abs(y - p_in[1]) < 0.5:
+        y = p_in[1]
+    else:                                  # cut above the inner corner: measure from the
+        hit = _inner_at(inner, y)          # inner edge where the cut meets it
+        if hit is None:
+            return glyph
+        p_in, t_in = hit
     s = math.copysign(1, p_out[0] - p_in[0])
     back = _back_to_extreme(outer)
     if back is None or len(back) < 8:
@@ -233,3 +254,83 @@ def taper(glyph, cs, p_in, p_out, tang, w_end):
     edge.lineTo(new[0][0] + nA[0] * R, new[0][1] + nA[1] * R)
     edge.close()
     return subtract(glyph, edge)
+
+
+def thin_inner(glyph, cs, p_in, p_out, amount, y):
+    """`glyph` with the inner edge of a level-cut stroke eased out towards the outer edge,
+    by `amount` at the cut (height y) and by nothing at the extreme of the counter, with
+    the same ease as the taper, so the end is a little lighter while the outside of the
+    stroke stays where it is."""
+    found = edges(cs, p_in, p_out)
+    if found is None or amount < 0.5:
+        return glyph
+    _, inner = found
+    hit = _inner_at(inner, y) if abs(y - p_in[1]) >= 0.5 else (p_in, inner_direction(inner))
+    if hit is None:
+        return glyph
+    start = hit[0]
+    # samples of the inner edge from the cut back to the extreme of the counter: from
+    # where it crosses the cut until it stops rising (or falling)
+    pts, prev = [start], _eval(inner[0], 0.0)[0]
+    on, way = abs(y - p_in[1]) < 0.5, 0
+    for s in inner:
+        n = max(8, int(_length(s) / STEP))
+        stop = False
+        for j in range(1, n + 1):
+            p = _eval(s, j / n)[0]
+            if not on:
+                on = (prev[1] - y) * (p[1] - y) <= 0
+            else:
+                dy = p[1] - prev[1]
+                if way == 0 and abs(dy) > 1e-6:
+                    way = 1 if dy > 0 else -1
+                elif way and dy * way < 0:
+                    stop = True
+                    break
+                pts.append(p)
+            prev = p
+        if stop:
+            break
+    if len(pts) < 8:
+        return glyph
+    pts = pts[::-1]                             # extreme ... cut
+    L = [0.0]
+    for i in range(1, len(pts)):
+        L.append(L[-1] + math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]))
+
+    def normal(i):
+        a, b = pts[max(0, i - 1)], pts[min(len(pts) - 1, i + 1)]
+        tx, ty = _unit((b[0] - a[0], b[1] - a[1]))
+        return (ty, -tx)
+    nE = normal(len(pts) - 1)                   # into the counter: away from the outer corner
+    sign = 1 if nE[0] * (pts[-1][0] - p_out[0]) + nE[1] * (pts[-1][1] - p_out[1]) >= 0 else -1
+    new, back = [], []
+    for i, q in enumerate(pts):
+        n = normal(i)
+        d = amount * _smoother(L[i] / L[-1])
+        new.append((q[0] - sign * n[0] * d, q[1] - sign * n[1] * d))       # into the ink
+        back.append((q[0] + sign * n[0] * 12, q[1] + sign * n[1] * 12))   # just inside the counter
+    a, b = new[-2], new[-1]                     # land the end on the cut
+    if abs(b[1] - a[1]) > 1e-9:
+        u = (y - b[1]) / (b[1] - a[1])
+        new[-1] = (b[0] + u * (b[0] - a[0]), y)
+    idx = [round(j * (len(new) - 1) / SEGMENTS) for j in range(SEGMENTS + 1)]
+
+    def jet(i):
+        i = min(max(i, 3), len(new) - 4)
+        a, b, c = new[i - 3], new[i], new[i + 3]
+        return _unit((c[0] - a[0], c[1] - a[1])), _curv3(a, b, c)
+    add = pathops.Path()
+    add.moveTo(*new[0])
+    for j in range(SEGMENTS):
+        i0, i1 = idx[j], idx[j + 1]
+        P0, P3 = new[i0], new[i1]
+        (t0, k0), (t1, k1) = jet(i0), jet(i1)
+        a0, a1 = fair.cubic_g2(P0, t0, k0, P3, t1, k1, (L[i1] - L[i0]) / 3)
+        add.cubicTo(P0[0] + a0 * t0[0], P0[1] + a0 * t0[1],
+                    P3[0] - a1 * t1[0], P3[1] - a1 * t1[1], *P3)
+    add.lineTo(back[-1][0], y)
+    for q in reversed(back):
+        add.lineTo(*q)
+    add.close()
+    return subtract(glyph, add)

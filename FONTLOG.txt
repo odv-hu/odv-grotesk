@@ -12,6 +12,24 @@ with or endorsed by Schibsted.
 ChangeLog
 ---------
 
+Unreleased
+- Italics: the upright f and t (which replace the cursive forms) sat about
+  115 units too far right: the italic is slanted about mid-x-height, and
+  Schibsted's italic letters are drawn that far left to allow for it, but
+  the borrowed upright letters were not. It, nt, lt were 110 units too
+  open and tn, ti, tl, fi 120 too tight. They are now placed and spaced
+  as the italic places its own letters (sidebearings those of the upright
+  letter, less the italic's median difference over n l h o: about 9 units
+  on the left, 12 on the right). ť ţ ț and the f ligatures follow.
+- 3: the left terminals are cut level at the height of Schibsted's tips
+  instead of at the inner corners, an exception to rule 2 like the a's top
+  terminal. Cut at the inner corners, their outer edges ran 57 units
+  (Regular) past the tips and hung towards the middle. Cut at the tips,
+  the inner edge met the cut at a sharp angle and the end read heavy, so
+  the inner edge eases out towards the outer edge by 8 units at the cut,
+  from nothing at the top (and bottom) of the counter. The taper still
+  sets the end's weight.
+
 0.3.7 (2026-11-22)
 - C G S J 2 3 5 6 9: every curved terminal is cut level at the height of
   its inner corner, as in e c s, instead of on a slant of 11-17 degrees;
