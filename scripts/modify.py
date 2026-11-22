@@ -15,9 +15,14 @@
     C G S J 2 3 5 6 9  the same: every curved terminal cut level at the height
        of its inner corner (LEVEL_CUTS), in the default, tabular and numerator
        figures; superiors and fractions are made of the numerators and follow.
+    taper  a level-cut curved stroke (c e s C G S J 2 3 5 6 9) no longer swells into
+       its terminal: from the extreme of its bowl the outer edge eases in, so the
+       end is TERMINAL_WEIGHT of the way from the thin to the side of o, O or 0
+       (scripts/taper.py).
     r  the arm ends in a vertical cut, like the flags of f j y t, instead of one
-       about 8 degrees off vertical. The cut stands at the tip, so the arm keeps
-       its reach and the r its spacing.
+       about 8 degrees off vertical. The cut stands at the tip and the underside
+       runs on along its own curve to it, so the arm keeps its reach and the r
+       its spacing.
     i j  the stem a touch heavier than n's (I_STEM), the same in both, since
        they share the dot and usually stand together; í, ï, ĵ, ij, ι and the
        fi ligatures follow.
@@ -45,7 +50,10 @@ e is 0.57 of the stem, against 0.81 in Regular). Where a style's contrast (thin
 of o / stem of n) is below CONTRAST, every outline is thinned horizontally,
 which narrows verticals and leaves horizontals as they are, until it reaches
 it; dots keep their shape. Advances stay, so the letters gain the removed
-width as sidebearing. In practice this touches Medium and Bold.
+width as sidebearing. In practice this touches Medium and Bold. Where a curve
+meets another stroke in a crotch (b d p q n h m u r a, 6 9 & $), the two thinned
+sides are carried on until they meet in a point again (CROTCH_MEET), instead of
+being joined by a short flat.
 
 Like draw.py, each change is a recipe on the font's own outlines, measured per
 style, so the same code serves every weight; italics are un-slanted first and
@@ -68,6 +76,7 @@ from geometry import (bounds, glyph_path, intersect, move, polygon, rect, simpli
 import pathops
 
 import fair
+import taper
 
 BIG = 10000
 CHANGED = ('I', 'ı', 'ȷ', 'e', 'a', 'c', 's', 'p', 'uni0307', 'idieresis', 'f', 't', 'z', 'E', 'F', 'T', 'Z', 'L', 'H',
@@ -86,6 +95,11 @@ A_FLAT_OUT = 0.75
 # inner corner (0.0, as e c s), or between. 1.0 keeps the tip where it is and takes
 # the slanted wedge off under it.
 A_TERMINAL = 1.0
+
+# a level-cut curved stroke tapers from the extreme of its bowl to the cut (taper.py),
+# so its end is this far from the thin (0) to the side (1) of the matching round:
+# o for lowercase, O for capitals, 0 for figures (in the same form, .tf or .numr)
+TERMINAL_WEIGHT = 0.45
 
 # the square dot overhangs the stem of dotless i by this much on each side, in
 # 2048ths of the em, in every weight: 192 units wide in Regular, 276 in Bold.
@@ -309,12 +323,41 @@ def _cut_level(glyph, p_in, p_out, tang, at=0.0):
     return out
 
 
+def _round_of(ch):
+    """The round a level-cut terminal of `ch` is weighed against."""
+    base, dot, form = ch.partition('.')
+    if base in ('two', 'three', 'five', 'six', 'nine'):
+        return 'zero' + dot + form
+    return 'O' if ch[0].isupper() else 'o'
+
+
+def _terminal_width(f, ch):
+    """Width across the stroke of a level-cut end: TERMINAL_WEIGHT of the way from the
+    thin (top) to the side of the matching round."""
+    r = _round_of(ch)
+    x0, y0, x1, y1 = f.bounds(r)
+    side = f.hspan(r, (y0 + y1) / 2)[0][1]
+    thin = f.vspan(r, (x0 + x1) / 2)[-1][1]
+    return thin + TERMINAL_WEIGHT * (side - thin)
+
+
 def _level_terminals(f, ch, select=None, at=0.0, glyph=None):
     """Cut the slanted terminals of `ch` level (_cut_level), by default at the height
-    of the inner corner, the outer edge carried on along its own direction."""
+    of the inner corner, the outer edge carried on along its own direction. Cut at
+    the inner corner, the stroke then tapers so its end is _terminal_width wide
+    (taper.py); the a's top, cut at its tip, keeps its weight."""
     out = glyph if glyph is not None else f.path(ch)
-    for p_in, p_out, tang in _terminal_cuts(f, ch, select):
+    cuts = _terminal_cuts(f, ch, select)
+    if at == 0.0:
+        rec = DecomposingRecordingPen(f.gs)
+        f.gs[f.name(ch)].draw(rec)
+        sh = math.tan(math.radians(f.italic))
+        cs = taper.contours(rec, lambda p: (p[0] - p[1] * sh, p[1]))
+        w_end = _terminal_width(f, ch)
+    for p_in, p_out, tang in cuts:
         out = _cut_level(out, p_in, p_out, tang, at)
+        if at == 0.0:
+            out = taper.taper(out, cs, p_in, p_out, tang, w_end)
     return out
 
 
@@ -359,16 +402,28 @@ def r_level(f, ch, select):
     return _level_terminals(f, ch, select), f.adv(ch), 0
 
 
-def _swap(p):
-    """Mirror an outline in the diagonal x = y, so a vertical cut becomes a level one."""
-    return transform(p, a=0, b=1, c=1, d=0)
+def _extend_to_x(seg, at_end, x):
+    """A quadratic ('q', p0, c, p1) carried on past its end (or start) along its own
+    curve to where it reaches `x`."""
+    P = [seg[1], seg[2], seg[3]]
+    lo, hi = (1.0, 3.0) if at_end else (-2.0, 0.0)
+    f = lambda u: _bez('q', P, u)[0][0] - x
+    if f(lo) * f(hi) > 0:
+        return None
+    for _ in range(60):
+        mid = (lo + hi) / 2
+        lo, hi = (lo, mid) if f(lo) * f(mid) <= 0 else (mid, hi)
+    u = (lo + hi) / 2
+    q = _casteljau(P, u)[0] if at_end else _casteljau(P, u)[1]
+    return ('q', *q)
 
 
 def r_r(f):
     """Rule 3: the arm ends in a vertical cut instead of one about 8 degrees off it.
     The cut stands at the tip of the arm, where its top corner is, and the underside
-    is carried on along its own direction to meet it, so the arm keeps its reach and
-    the r its spacing (_cut_level, turned through the diagonal)."""
+    is carried on along its own curve to meet it, so the arm keeps its reach and the
+    r its spacing. (Carried on in a straight piece, the piece would be shorter than
+    the Medium/Bold thinning moves it and fold out past the cut.)"""
     glyph = f.path('r')
     x0, _, x1, _ = bounds(glyph)
     steep = lambda a, b, bb: (a[0] > (x0 + x1) / 2 and b[0] > (x0 + x1) / 2
@@ -378,12 +433,32 @@ def r_r(f):
     rec = DecomposingRecordingPen(f.gs)
     f.gs[f.name('r')].draw(rec)
     sh = math.tan(math.radians(f.italic))
-    d = _outer_tangent(rec, low, lambda p: (p[0] - p[1] * sh, p[1]))
-    if d[0] < 0:
-        d = (-d[0], -d[1])
-    sw = lambda p: (p[1], p[0])
-    out = _cut_level(_swap(glyph), sw(top), sw(low), sw(d))
-    return _swap(out), f.adv('r'), 0
+    cs = taper.contours(rec, lambda p: (p[0] - p[1] * sh, p[1]))
+    out = pathops.Path()
+    for segs in cs:
+        n = len(segs)
+        new = list(segs)
+        for i, sg in enumerate(segs):
+            ends = (sg[1], sg[2])
+            if sg[0] == 'l' and any(taper._near(e, top) for e in ends) and any(taper._near(e, low) for e in ends):
+                if taper._near(sg[1], top):           # top -> low, then the underside
+                    j = (i + 1) % n
+                    ext = _extend_to_x(segs[j], False, top[0])
+                    new[j] = ext
+                    new[i] = ('l', sg[1], ext[1])
+                else:                                 # the underside, then low -> top
+                    j = (i - 1) % n
+                    ext = _extend_to_x(segs[j], True, top[0])
+                    new[j] = ext
+                    new[i] = ('l', ext[3], sg[2])
+        out.moveTo(*new[0][1])
+        for sg in new:
+            if sg[0] == 'l':
+                out.lineTo(*sg[2])
+            else:
+                out.quadTo(*sg[2], *sg[3])
+        out.close()
+    return simplify(out), f.adv('r'), 0
 
 
 def r_e(f):
@@ -587,6 +662,7 @@ def r_t(f):
 
 BLEND_SPAN = 2.5         # an extreme's blend reaches this many e to either side
 ROUND_CROSSINGS = False  # round off the short flats at inside corners that involve a curve
+CROTCH_MEET = True       # inside corners with a curve: the moved sides meet in a point again
 ROUND_SPAN = 1.5         # how far back (in e) a rounded crossing starts on each side
 
 
@@ -601,7 +677,7 @@ def _casteljau(P, u):
     return left, right[::-1]
 
 
-def _meet_line(kind, Q, L0, t, at_end):
+def _meet_line(kind, Q, L0, t, at_end, reach=0.5):
     """The curve Q cut, or carried on, at its end (at_end) or start to where it
     crosses the line through L0 along t; None if it does not get there."""
     def g(u):
@@ -618,13 +694,13 @@ def _meet_line(kind, Q, L0, t, at_end):
         u -= step
         if abs(step) < 1e-10:
             break
-    if not (-0.5 < u < 1.5) or abs(g(u)) > 1e-3:
+    if not (-reach < u < 1 + reach) or abs(g(u)) > 1e-3:
         return None
     left, right = _casteljau(Q, u)
     return left if at_end else right
 
 
-def _meet_curves(ka, A, kb, B):
+def _meet_curves(ka, A, kb, B, reach=0.6):
     """Parameters (u, v) where curve A near its end crosses curve B near its start,
     carried on past the ends if need be; None if they do not meet."""
     u, v = 1.0, 0.0
@@ -642,7 +718,7 @@ def _meet_curves(ka, A, kb, B):
         dv = (-da[0] * r[1] + da[1] * r[0]) / det
         u, v = u + du, v + dv
     pa, pb = _bez(ka, A, u)[0], _bez(kb, B, v)[0]
-    if math.hypot(pa[0] - pb[0], pa[1] - pb[1]) > 1e-3 or not (0.2 < u < 1.6 and -0.6 < v < 0.8):
+    if math.hypot(pa[0] - pb[0], pa[1] - pb[1]) > 1e-3 or not (0.2 < u < 1 + reach and -reach < v < 0.8):
         return None
     return u, v
 
@@ -777,10 +853,36 @@ def erode_x(p, e):
             # a corner whose sides move differently
             if cr < 0:
                 # an inside corner (a notch, a crotch): the white widens by e on
-                # each side, so the two moved sides are joined by a short flat,
-                # or, where a curve is involved and ROUND_CROSSINGS is on, both
-                # sides are cut back a little and joined by a smooth curve
-                if ROUND_CROSSINGS and (ka != 'l' or kb != 'l'):
+                # each side. Where a curve is involved the moved sides are carried
+                # on to meet (CROTCH_MEET), or cut back a little and joined by a
+                # smooth curve (ROUND_CROSSINGS); otherwise, and where they do not
+                # meet, they are joined by a short flat
+                met = False
+                if CROTCH_MEET and (ka != 'l' or kb != 'l'):
+                    # a crotch stays a point, as Schibsted drew it: both moved sides are
+                    # carried on along their own course until they meet, so neither bends;
+                    # the notch sits a little deeper than Schibsted's (most where the sides
+                    # meet at a shallow angle, as in b d p q n and 6 9)
+                    if ka == 'l':
+                        Q2 = _meet_line(kb, Pb, Pa[0], ta, False, 2.0)
+                        if Q2 is not None:
+                            moved[b] = (kb, Q2)
+                            Pa[-1] = Q2[0]
+                            met = True
+                    elif kb == 'l':
+                        Q2 = _meet_line(ka, Pa, Pb[0], tb, True, 2.0)
+                        if Q2 is not None:
+                            moved[a] = (ka, Q2)
+                            Pb[0] = Q2[-1]
+                            met = True
+                    else:
+                        uv = _meet_curves(ka, Pa, kb, Pb, 2.0)
+                        if uv is not None:
+                            moved[a] = (ka, _casteljau(Pa, uv[0])[0])
+                            moved[b] = (kb, _casteljau(Pb, uv[1])[1])
+                            moved[b][1][0] = moved[a][1][-1]
+                            met = True
+                if not met and ROUND_CROSSINGS and (ka != 'l' or kb != 'l'):
                     D = ROUND_SPAN * e
                     us = []
                     for k, P, at_end in ((ka, Pa, True), (kb, Pb, False)):
@@ -806,7 +908,7 @@ def erode_x(p, e):
                                        (p3[0] - a1 * t1[0], p3[1] - a1 * t1[1]), p3))
                     moved[a] = (ka, Pa2)
                     moved[b] = (kb, Pb2)
-                else:
+                elif not met:
                     blends[i] = ('l', Pb[0])
                 continue
             if ka == 'l' and kb == 'l':        # where the two moved edges cross
@@ -845,7 +947,10 @@ def erode_x(p, e):
                     Pa[-1] = X
                     Pb[0] = X
         def join(bl):
-            if bl[0] == 'c':
+            if bl[0] == 'm':
+                for b in bl[1]:
+                    join(b)
+            elif bl[0] == 'c':
                 pen.curveTo(*bl[1])
             else:
                 pen.lineTo(bl[1])

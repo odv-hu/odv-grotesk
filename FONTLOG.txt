@@ -18,11 +18,26 @@ Unreleased
   the outer edge runs on along its own direction to the cut. The tabular
   figures and numerators follow, and with them the superiors and
   fractions (² ³ ½ ¾), and the accented capitals (Ç Ĝ Š...).
+- Level-cut terminals (c e s and C G S J 2 3 5 6 9) no longer swell. The
+  curved strokes grew heavier towards their ends (S: 148 units at the top
+  of the bowl, 182-190 on the side, 216-220 at the ends, Regular), which
+  the level cut showed as a heavy flat end. From the top or bottom of the
+  bowl the outer edge now eases in, without a point where it starts, so
+  the end is 0.45 of the way from the thin to the side of o (lowercase), O
+  (capitals) or 0 (figures, numerators against the numerator 0): Regular
+  160, 169 and 165 units. The inner edge and the cut are unchanged; ς,
+  whose top is the c's, follows.
 - r: the arm ends in a vertical cut, like the flags of f j y t, instead of
   one about 8 degrees off vertical (in the italics it follows the slant).
   The cut stands at the tip, and the underside of the arm runs on along
-  its own direction to meet it, so the arm keeps its reach and the r its
+  its own curve to meet it, so the arm keeps its reach and the r its
   spacing. ŕ ŗ follow.
+- Crotches in Medium, Bold and their italics: where a curve meets another
+  stroke (b d p q n h m u r a, 6 9 & $ ð æ), the contrast thinning moved
+  the two sides apart and joined them with a short flat (46 units wide in
+  Bold). The two sides are now carried on along their own course until
+  they meet, so the crotch is a point again, as Schibsted drew it, a
+  little deeper than his.
 - Spacing: the bowls of b, p, þ (and ð β ρ, kerned with them) and of d, q
   sat 10-20 units closer to their neighbours than o, and the shoulder of h
   about 28 closer than n. Schibsted made up for it in the kerning, so the

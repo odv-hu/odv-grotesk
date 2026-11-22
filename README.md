@@ -33,13 +33,14 @@ Still missing: the rest of the maths symbols (they come when a text needs them -
 | c | both terminals cut level |
 | s | both terminals cut level at the height of their inner corners, like e and c |
 | C G S J 2 3 5 6 9 | the same: every curved terminal cut level at the height of its inner corner, the outer edge carried on (the tabular figures, superiors and fractions follow) |
+| terminals | a curved stroke cut level (c e s C G S J 2 3 5 6 9) does not swell into its end: from the top or bottom of its bowl the outer edge eases in, so the end is a little under halfway (0.45) from the thin to the side of o, O or 0 |
 | r | the arm ends in a vertical cut, like the flags of f j y t. The cut stands at the tip of the arm, so the r keeps its reach and spacing |
 | i j | square dot, top level with the top of l, overhanging the stem by the same amount on each side in every weight (so relatively less in heavier weights). It is the same glyph as the dot accent and the dieresis, so ä ö ü ż İ turn square too |
 | i j | stems a touch heavier than n's (4.5%), so they don't read thin next to round letters: i and j match |
 | p | counter moved right so stem and bowl are equally thick, which widens the join |
 | f t (italics) | the upright f and t slanted, instead of the cursive forms |
 | . , ! ? | square dots, the size of i's, and a comma with a square head and a straight tail leaning left, cut level (: ; … · ŀ and the quotes ‘ ’ “ ” ‚ „ are made of them and follow) |
-| contrast | Medium and Bold (and their italics) have thinner verticals, so horizontals no longer look thin next to the stems: thin to thick is 0.87 in every weight, about what Schibsted drew its own Italic with. The tops and bottoms of rounds run into short smooth curves instead of the point the thinning would leave |
+| contrast | Medium and Bold (and their italics) have thinner verticals, so horizontals no longer look thin next to the stems: thin to thick is 0.87 in every weight, about what Schibsted drew its own Italic with. The tops and bottoms of rounds run into short smooth curves instead of the point the thinning would leave, and crotches (b d p q n h m u r a, 6 9 & $) stay a point instead of opening into a short flat |
 | z E F T Z L H | in Medium and Bold the straight bars back to Schibsted's proportion to the thinned stem (about 0.85), so these letters are not darker than the rest |
 | spacing | the bowls of b p þ and d q, and the shoulder of h, have the room Schibsted gave them only in kerned pairs in their sidebearings, so pairs it did not kern (`od`, `bd`, `hu`) sit like the rest. The 1 is a little tighter on the left: its light flag no longer leaves a hole before it, as in 1911 |
 | kerning | no letter is kerned further from a round than from a stem: lowercase rounds (o b p e c s before o d c e q a s), capital rounds (O D Q C G S B P before O C G Q S) and the figures among themselves, so `pod`, `OCO` and `1960` sit evenly. z is pulled half as close to o c e s. The en dash keeps from a figure the distance one 0 keeps from the next, so year ranges such as 1967–2026 are not crowded (set dates in the default figures; tabular figures, `tnum`, are for columns) |
