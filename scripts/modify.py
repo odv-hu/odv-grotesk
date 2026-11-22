@@ -65,7 +65,9 @@ import fair
 
 BIG = 10000
 CHANGED = ('I', 'ı', 'ȷ', 'e', 'a', 'c', 's', 'p', 'uni0307', 'idieresis', 'f', 't', 'z', 'E', 'F', 'T', 'Z', 'L', 'H',
-           '!', '?', '¡', '¿', 'exclamdown.case', 'questiondown.case', '.', ',', '‘', '“')
+           '!', '?', '¡', '¿', 'exclamdown.case', 'questiondown.case', '.', ',', '‘', '“',
+           'C', 'G', 'S', 'J') + tuple(n + form for n in ('two', 'three', 'five', 'six', 'nine')
+                                       for form in ('', '.tf', '.numr'))
 
 # the a's bowl: where the flat top starts, as a share of the counter's width from
 # the left, for the counter and for the outside. The outside reaches further, so
@@ -316,6 +318,39 @@ def _at_side(a, b, bb):
     x0, _, x1, _ = bb
     tol = 0.06 * (x1 - x0)
     return min(abs(p[0] - x) for p in (a, b) for x in (x0, x1)) < tol
+
+
+def _cuts(side=None, low=False, steep=30):
+    """A selector for _terminal_cuts: cuts shallower than `steep` degrees (so not the
+    diagonal of 2 or the stem of 5), on the given half of the letter ('left',
+    'right') or reaching its side (None, as _at_side), and with `low`, only in its
+    lower 40 % (the 5, whose bowl meets the stem in a shallow joint at mid-height)."""
+    def select(a, b, bb):
+        x0, y0, x1, y1 = bb
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        if math.degrees(math.atan2(abs(b[1] - a[1]), abs(b[0] - a[0]))) > steep:
+            return False
+        if low and max(a[1], b[1]) > y0 + 0.4 * (y1 - y0):
+            return False
+        if side == 'left':
+            return a[0] < cx and b[0] < cx
+        if side == 'right':
+            return a[0] > cx and b[0] > cx
+        return _at_side(a, b, bb)
+    return select
+
+
+# the capitals and figures whose curved strokes end in a slanted cut, and where it is
+LEVEL_CUTS = {'C': _cuts('right'), 'G': _cuts('right'), 'S': _cuts(), 'J': _cuts('left'),
+              'two': _cuts(), 'three': _cuts('left'), 'five': _cuts(low=True),
+              'six': _cuts('right'), 'nine': _cuts('left')}
+FIGURE_FORMS = ('', '.tf', '.numr')     # default, tabular, numerators (superiors, fractions)
+
+
+def r_level(f, ch, select):
+    """Rule 2 for the capitals and figures: every curved terminal cut level at the
+    height of its inner corner, as in e c s."""
+    return _level_terminals(f, ch, select), f.adv(ch), 0
 
 
 def r_e(f):
@@ -952,6 +987,9 @@ def r_a(f):
 
 RECIPES = {'I': r_I, 'ı': r_dotlessi, 'ȷ': r_dotlessj, 'p': r_p, 'e': r_e, 'a': r_a, 'c': r_c, 's': r_s, 'uni0307': r_dot,
            'idieresis': r_idieresis, 'f': r_f, 't': r_t}
+for _base, _sel in LEVEL_CUTS.items():
+    for _form in (FIGURE_FORMS if len(_base) > 1 else ('',)):
+        RECIPES[_base + _form] = (lambda ch, sel: lambda f: r_level(f, ch, sel))(_base + _form, _sel)
 for _ch in BARRED:
     RECIPES[_ch] = (lambda ch: lambda f: r_bars(f, ch))(_ch)
 for _ch in ('!', '?', '¡', '¿', 'exclamdown.case', 'questiondown.case', '.'):
