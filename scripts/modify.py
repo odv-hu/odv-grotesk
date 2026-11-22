@@ -692,6 +692,8 @@ def r_t(f):
 BLEND_SPAN = 2.5         # an extreme's blend reaches this many e to either side
 ROUND_CROSSINGS = False  # round off the short flats at inside corners that involve a curve
 CROTCH_MEET = True       # inside corners with a curve: the moved sides meet in a point again
+MEET_CAP = 2.0           # two curves that do not meet along their own course are carried on
+                         # in straight lines, if they meet within this many times the gap
 SHOULDER_EASE = True     # where a curve meets a straight stem in a crotch (the shoulders of
                          # n h m u r, the bowls of b d p q), the curve's move fades out
                          # towards the crotch, so the junction keeps Schibsted's weight
@@ -969,6 +971,20 @@ def erode_x(p, e):
                             met = True
                     else:
                         uv = _meet_curves(ka, Pa, kb, Pb, 2.0)
+                        if uv is None:
+                            # too sharp a crotch to carry the curves on (the foot of a in
+                            # Bold): carried on in straight lines along their own direction,
+                            # unless the point would land far off (a shallow crotch, as ð)
+                            ea, eb = Pa[-1], Pb[0]
+                            da, db = _tangent_at(ka, Pa, True), _tangent_at(kb, Pb, False)
+                            den = da[0] * db[1] - da[1] * db[0]
+                            if abs(den) > 1e-9:
+                                t = ((eb[0] - ea[0]) * db[1] - (eb[1] - ea[1]) * db[0]) / den
+                                w = ((eb[0] - ea[0]) * da[1] - (eb[1] - ea[1]) * da[0]) / den
+                                gap = math.hypot(eb[0] - ea[0], eb[1] - ea[1])
+                                if t > 0 and w < 0 and max(t, -w) <= MEET_CAP * gap:
+                                    blends[i] = ('ll', (ea[0] + t * da[0], ea[1] + t * da[1]), eb)
+                                    met = True
                         if uv is not None:
                             moved[a] = (ka, _casteljau(Pa, uv[0])[0])
                             moved[b] = (kb, _casteljau(Pb, uv[1])[1])
@@ -1039,9 +1055,9 @@ def erode_x(p, e):
                     Pa[-1] = X
                     Pb[0] = X
         def join(bl):
-            if bl[0] == 'm':
-                for b in bl[1]:
-                    join(b)
+            if bl[0] == 'll':                  # two straight pieces through a point
+                pen.lineTo(bl[1])
+                pen.lineTo(bl[2])
             elif bl[0] == 'c':
                 pen.curveTo(*bl[1])
             else:

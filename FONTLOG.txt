@@ -12,7 +12,7 @@ with or endorsed by Schibsted.
 ChangeLog
 ---------
 
-Unreleased
+0.3.7 (2026-11-22)
 - C G S J 2 3 5 6 9: every curved terminal is cut level at the height of
   its inner corner, as in e c s, instead of on a slant of 11-17 degrees;
   the outer edge runs on along its own direction to the cut. The tabular
@@ -59,7 +59,10 @@ Unreleased
   the two sides apart and joined them with a short flat (46 units wide in
   Bold). The two sides are now carried on along their own course until
   they meet, so the crotch is a point again, as Schibsted drew it, a
-  little deeper than his.
+  little deeper than his. Where two curves meet too sharply to be carried
+  on (the foot of a in Bold, ª, @, ③), they are carried on in straight
+  lines along their own direction, as long as the point lands within
+  twice the old flat's width; the ð in Bold keeps its flat.
 - Spacing: the bowls of b, p, þ (and ð β ρ, kerned with them) and of d, q
   sat 10-20 units closer to their neighbours than o, and the shoulder of h
   about 28 closer than n. Schibsted made up for it in the kerning, so the
