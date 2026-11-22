@@ -32,6 +32,8 @@ Still missing: the rest of the maths symbols (they come when a text needs them -
 | a | the top of the bowl runs flat out from the stem and turns down in a corner whose curvature eases in from the flat and out into the bowl, with no point where the bend starts. The terminal at the top is cut level at the height of its tip (upright styles. The italic a is single-storey and unchanged) |
 | c | both terminals cut level |
 | s | both terminals cut level at the height of their inner corners, like e and c |
+| C G S J 2 3 5 6 9 | the same: every curved terminal cut level at the height of its inner corner, the outer edge carried on (the tabular figures, superiors and fractions follow) |
+| r | the arm ends in a vertical cut, like the flags of f j y t. The cut stands at the tip of the arm, so the r keeps its reach and spacing |
 | i j | square dot, top level with the top of l, overhanging the stem by the same amount on each side in every weight (so relatively less in heavier weights). It is the same glyph as the dot accent and the dieresis, so ä ö ü ż İ turn square too |
 | i j | stems a touch heavier than n's (4.5%), so they don't read thin next to round letters: i and j match |
 | p | counter moved right so stem and bowl are equally thick, which widens the join |

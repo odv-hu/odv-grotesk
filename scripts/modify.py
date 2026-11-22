@@ -12,6 +12,12 @@
     c  both terminals cut level, like the e.
     s  both terminals cut level at the height of their inner corners, like e and
        c, instead of on a slant; the spine is left as it is.
+    C G S J 2 3 5 6 9  the same: every curved terminal cut level at the height
+       of its inner corner (LEVEL_CUTS), in the default, tabular and numerator
+       figures; superiors and fractions are made of the numerators and follow.
+    r  the arm ends in a vertical cut, like the flags of f j y t, instead of one
+       about 8 degrees off vertical. The cut stands at the tip, so the arm keeps
+       its reach and the r its spacing.
     i j  the stem a touch heavier than n's (I_STEM), the same in both, since
        they share the dot and usually stand together; í, ï, ĵ, ij, ι and the
        fi ligatures follow.

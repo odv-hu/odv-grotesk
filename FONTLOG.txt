@@ -13,6 +13,16 @@ ChangeLog
 ---------
 
 Unreleased
+- C G S J 2 3 5 6 9: every curved terminal is cut level at the height of
+  its inner corner, as in e c s, instead of on a slant of 11-17 degrees;
+  the outer edge runs on along its own direction to the cut. The tabular
+  figures and numerators follow, and with them the superiors and
+  fractions (² ³ ½ ¾), and the accented capitals (Ç Ĝ Š...).
+- r: the arm ends in a vertical cut, like the flags of f j y t, instead of
+  one about 8 degrees off vertical (in the italics it follows the slant).
+  The cut stands at the tip, and the underside of the arm runs on along
+  its own direction to meet it, so the arm keeps its reach and the r its
+  spacing. ŕ ŗ follow.
 - Spacing: the bowls of b, p, þ (and ð β ρ, kerned with them) and of d, q
   sat 10-20 units closer to their neighbours than o, and the shoulder of h
   about 28 closer than n. Schibsted made up for it in the kerning, so the
