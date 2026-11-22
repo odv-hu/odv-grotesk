@@ -12,6 +12,31 @@ with or endorsed by Schibsted.
 ChangeLog
 ---------
 
+Unreleased
+- Spacing: the bowls of b, p, þ (and ð β ρ, kerned with them) and of d, q
+  sat 10-20 units closer to their neighbours than o, and the shoulder of h
+  about 28 closer than n. Schibsted made up for it in the kerning, so the
+  pairs it did not kern, or that 0.3.6 unkerned, sat tight: od, bd, pd, ad,
+  hu. The difference now lives in the sidebearings, by the median of what
+  Schibsted kerned each letter further than o or n (Regular: d q 18, b 14,
+  þ 18, h 28 units; per style), and comes off the kerning again, so the
+  pairs Schibsted kerned look as before. d, q: ď đ follow; h: ĥ ħ.
+- 1: 20 units (of 2048) tighter on the left in every style, so the white
+  under its flag no longer reads as a gap (1911, 1951). Pairs kerned
+  closer to fit the flag, as after 5, keep the flag where it was.
+- Kerning: no letter is kerned further from a round than from a stem. Pairs
+  meeting a round side (o b p e c s before o d c e q a s; O D Q C G S B P
+  before O C G Q S; the figures among themselves) are brought down to what
+  the first letter gets against n or H, or to nothing: e-o, s-a, O-O, B-O,
+  0-0, 9-6, 1-9 and the like were opened by 10-60 units. B G S, 3 and 8
+  keep what they have against H.
+- En dash (and em dash) between figures: every figure-dash pair opens by
+  the same amount, so the dash keeps from 0 the distance one 0 keeps from
+  the next (Regular 36-38 units, Medium 25-28, Italic 10-20, Medium
+  Italic 4-13; Bold within 3, Bold Italic 7-14 closer). Year ranges such as 1967-2026 are no longer crowded
+  round the dash. Dates are set in the default figures; tabular figures
+  are for columns.
+
 0.3.6 (2026-11-14)
 - s: both terminals are cut level at the height of their inner corners, as
   in e and c, instead of on a slant; the outer edge runs on along its own

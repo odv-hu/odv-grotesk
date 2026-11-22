@@ -39,7 +39,8 @@ Still missing: the rest of the maths symbols (they come when a text needs them -
 | . , ! ? | square dots, the size of i's, and a comma with a square head and a straight tail leaning left, cut level (: ; … · ŀ and the quotes ‘ ’ “ ” ‚ „ are made of them and follow) |
 | contrast | Medium and Bold (and their italics) have thinner verticals, so horizontals no longer look thin next to the stems: thin to thick is 0.87 in every weight, about what Schibsted drew its own Italic with. The tops and bottoms of rounds run into short smooth curves instead of the point the thinning would leave |
 | z E F T Z L H | in Medium and Bold the straight bars back to Schibsted's proportion to the thinned stem (about 0.85), so these letters are not darker than the rest |
-| kerning | round lowercase pairs (o b p before o d c e q) are no longer kerned apart, and z is pulled half as close to o c e s, so `pod` and `poz` sit evenly |
+| spacing | the bowls of b p þ and d q, and the shoulder of h, have the room Schibsted gave them only in kerned pairs in their sidebearings, so pairs it did not kern (`od`, `bd`, `hu`) sit like the rest. The 1 is a little tighter on the left: its light flag no longer leaves a hole before it, as in 1911 |
+| kerning | no letter is kerned further from a round than from a stem: lowercase rounds (o b p e c s before o d c e q a s), capital rounds (O D Q C G S B P before O C G Q S) and the figures among themselves, so `pod`, `OCO` and `1960` sit evenly. z is pulled half as close to o c e s. The en dash keeps from a figure the distance one 0 keeps from the next, so year ranges such as 1967–2026 are not crowded (set dates in the default figures; tabular figures, `tnum`, are for columns) |
 | curves | Schibsted's own small kinks straightened and curvature steps between quadratic pieces evened out, in every glyph. Smooth points stay smooth when rounded to whole units |
 
 Accented forms (Í, é, ą, ç…), IJ, the fi ligatures and Greek Ι are built from these glyphs and follow them.
@@ -61,6 +62,8 @@ The new glyphs are drawn by [`scripts/draw.py`](scripts/draw.py) from recipes ra
 Stem widths, heights and sidebearings are measured from each style of the font, so the same recipes produce every weight and the italic.
 The result goes into `sources/<style>.ufo`, which opens in any font editor.
 A glyph finished by hand goes into `sources/hand-edited.txt`, and the script leaves it alone from then on.
+
+The spacing is evened out from Schibsted's own numbers: where it kerns a letter further than its model against nearly everything (d 16-18 units further than o, h about 28 further than n), [`scripts/space.py`](scripts/space.py) moves that into the sidebearing and takes it off the kerning again, so the pairs it kerned look as before and the ones it missed open up to match. [`scripts/kern.py`](scripts/kern.py) then caps the kerning of rounds at what the same letter gets against a stem.
 
 The Greek letters are kerned like Latin letters with the same sides: [`scripts/kern.py`](scripts/kern.py) puts Τ in T's kerning classes, Λ in A's, Γ in E's on the left and T's on the right, and so on, so `ΓΑΤΑ` sits like `AVATAR`.
 

@@ -1,6 +1,8 @@
 """Build odv Grotesk from Schibsted Grotesk: reshaped I, a, e plus the added glyphs,
-Greek accents (scripts/accents.py), and the Greek letters kerned like their Latin
-models, round lowercase pairs no longer kerned apart (scripts/kern.py).
+Greek accents (scripts/accents.py), the Greek letters kerned like their Latin
+models, rounds no longer kerned apart and en dashes spaced from figures
+(scripts/kern.py), and sidebearings taken over from Schibsted's kerning
+(scripts/space.py).
 
     python3 scripts/build.py            # draw the added glyphs, then build all styles
     python3 scripts/build.py --no-draw  # build from sources/*.ufo as they are
@@ -23,6 +25,7 @@ import accents  # noqa: E402
 import draw  # noqa: E402
 import kern  # noqa: E402
 import modify  # noqa: E402
+import space  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 VERSION = '0.3.6'
@@ -133,7 +136,9 @@ def build(style, redraw):
     added = merge(tt, ufoLib2.Font.open(ufo_path))
     accented = accents.accents(tt)
     kerned = kern.kern(tt, accented)
+    spaced = space.space(tt)
     kern.even_rounds(tt)
+    dashed = kern.dashes(tt)
     hand = ROOT / 'sources' / 'hand-edited.txt'
     skip = {ln.strip() for ln in hand.read_text().splitlines()
             if ln.strip() and not ln.startswith('#')} if hand.exists() else set()
@@ -147,7 +152,7 @@ def build(style, redraw):
     tt.flavor = 'woff2'
     tt.save(web)
     print(f'{out.name}: {len(added)} glyphs added, {kerned} Greek letters kerned, '
-          f'{len(faired)} outlines smoothed')
+          f'{len(faired)} outlines smoothed; moved {spaced}, dashes opened {dashed}')
 
 
 if __name__ == '__main__':
