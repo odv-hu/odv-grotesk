@@ -55,6 +55,9 @@ meets another stroke in a crotch (b d p q n h m u r a, 6 9 & $), the two thinned
 sides are carried on until they meet in a point again (CROTCH_MEET), instead of
 being joined by a short flat.
 
+Rule 4 runs over the whole font after the merge (ease_corners, from build.py):
+quarter turns between two straight edges are redrawn as fair corners.
+
 Like draw.py, each change is a recipe on the font's own outlines, measured per
 style, so the same code serves every weight; italics are un-slanted first and
 slanted back after. The italic a is single-storey and is left as it is.
@@ -1339,6 +1342,125 @@ def fair_contour(pts, xh):
         if keep is not None:
             res.append(keep)
     return res, changed
+
+
+# rule 4: where a straight edge turns through about a quarter into another straight edge
+# by way of a curve (the hooks of f j t y l, g's ear, a's spur, the turns of { } and of
+# the drawn ζ ξ ς τ), the curve is redrawn as a fair corner (fair.py): its curvature
+# rises from nothing on the one straight edge and falls back to nothing on the other,
+# with no point where the bend visibly starts. It starts where the old curve started,
+# EASE_REACH times as far from the corner the two edges would make.
+EASE_REACH = 1.0
+EASE_TURN = (60, 120)    # degrees: what counts as a quarter turn
+EASE_MAX_CURVES = 4      # curve pieces between the two straight edges
+
+
+def _unit2(v):
+    n = math.hypot(*v)
+    return (v[0] / n, v[1] / n)
+
+
+def _quarter_turns(segs):
+    """(i, j, d1, d2): straight piece i, then 1..EASE_MAX_CURVES curves, then straight
+    piece j, joined without a kink, turning through EASE_TURN."""
+    n, out = len(segs), []
+    for i in range(n):
+        if segs[i][0] != 'l':
+            continue
+        j, m = (i + 1) % n, 0
+        while segs[j][0] != 'l' and m < n:
+            j, m = (j + 1) % n, m + 1
+        if m == 0 or m > EASE_MAX_CURVES:
+            continue
+        A, B = segs[i][1], segs[j][1]
+        d1 = _unit2((A[1][0] - A[0][0], A[1][1] - A[0][1]))
+        d2 = _unit2((B[1][0] - B[0][0], B[1][1] - B[0][1]))
+        t0 = _jet(*segs[(i + 1) % n], 0.0)[1]
+        t1 = _jet(*segs[(j - 1) % n], 1.0)[1]
+        if d1[0] * t0[0] + d1[1] * t0[1] < 0.999 or d2[0] * t1[0] + d2[1] * t1[1] < 0.999:
+            continue
+        turn = math.degrees(math.acos(max(-1.0, min(1.0, d1[0] * d2[0] + d1[1] * d2[1]))))
+        if EASE_TURN[0] < turn < EASE_TURN[1]:
+            out.append((i, j, d1, d2))
+    return out
+
+
+def _ease_contour(segs):
+    """The contour with its quarter turns redrawn as fair corners; None if it has none."""
+    n = len(segs)
+    repl, drop, trim_end, trim_start = {}, set(), {}, {}
+    for i, j, d1, d2 in _quarter_turns(segs):
+        A, B = segs[i][1], segs[j][1]
+        den = d1[0] * d2[1] - d1[1] * d2[0]
+        u = ((B[0][0] - A[1][0]) * d2[1] - (B[0][1] - A[1][1]) * d2[0]) / den
+        V = (A[1][0] + u * d1[0], A[1][1] + u * d1[1])          # where the edges would meet
+        r1 = math.hypot(V[0] - A[1][0], V[1] - A[1][1])
+        r2 = math.hypot(V[0] - B[0][0], V[1] - B[0][1])
+        l1 = math.hypot(A[1][0] - A[0][0], A[1][1] - A[0][1])
+        l2 = math.hypot(B[1][0] - B[0][0], B[1][1] - B[0][1])
+        a1, a2 = min(EASE_REACH * r1, r1 + 0.8 * l1), min(EASE_REACH * r2, r2 + 0.8 * l2)
+        S = (V[0] - a1 * d1[0], V[1] - a1 * d1[1])
+        try:
+            cubics = fair.corner(a2, a1, 0.0, 0.0)              # x along d2, y along d1, from S
+        except ValueError:
+            continue
+        g = lambda q: (S[0] + q[0] * d2[0] + q[1] * d1[0], S[1] + q[0] * d2[1] + q[1] * d1[1])
+        trim_end[i], trim_start[j] = S, (V[0] + a2 * d2[0], V[1] + a2 * d2[1])
+        k = (i + 1) % n
+        while k != j:
+            drop.add(k)
+            k = (k + 1) % n
+        repl[i] = [[None, g(c[0]), g(c[1]), g(c[2])] for c in cubics]
+    if not repl:
+        return None
+    out = []
+    for i, (kind, P) in enumerate(segs):
+        if i in drop:
+            continue
+        Q = [tuple(q) for q in P]
+        if i in trim_start:
+            Q[0] = trim_start[i]
+        if i in trim_end:
+            Q[-1] = trim_end[i]
+        out.append((kind, Q))
+        for C in repl.get(i, ()):
+            out.append(('c', C))
+    for m in range(len(out)):                                   # each piece starts where the last ended
+        out[m][1][0] = out[m - 1][1][-1]
+    return out
+
+
+def ease_corners(tt, skip=()):
+    """Rule 4 over every simple glyph of `tt` (un-slanted for the italics); names in
+    `skip` are left alone. Returns the names of the glyphs changed."""
+    gs = tt.getGlyphSet()
+    italic = -tt['post'].italicAngle
+    glyf = tt['glyf']
+    done = []
+    for name in tt.getGlyphOrder():
+        g = glyf[name]
+        if name in skip or g.isComposite() or g.numberOfContours <= 0:
+            continue
+        p = glyph_path(gs, name, unslant=italic)
+        new, changed = pathops.Path(), False
+        for contour in _contours(p):
+            segs = [(k, [tuple(q) for q in P]) for k, P in _segments(contour)]
+            eased = _ease_contour(segs)
+            changed |= eased is not None
+            pen = new.getPen()
+            pen.moveTo((eased or segs)[0][1][0])
+            for kind, Q in eased or segs:
+                if kind == 'l':
+                    pen.lineTo(Q[1])
+                elif kind == 'q':
+                    pen.qCurveTo(Q[1], Q[2])
+                else:
+                    pen.curveTo(Q[1], Q[2], Q[3])
+            pen.closePath()
+        if changed:
+            _put(tt, name, slant(simplify(new), italic), tt["hmtx"][name][0])
+            done.append(name)
+    return done
 
 
 def fair_outlines(tt, skip=()):

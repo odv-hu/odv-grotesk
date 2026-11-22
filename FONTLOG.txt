@@ -32,6 +32,14 @@ Unreleased
   The cut stands at the tip, and the underside of the arm runs on along
   its own curve to meet it, so the arm keeps its reach and the r its
   spacing. ŕ ŗ follow.
+- Corners: where a straight edge turns through about a quarter into
+  another by way of a curve, the curve's curvature jumped from nothing to
+  its full value where it met the straight. These curves are redrawn as
+  fair corners (scripts/fair.py, as in the a's bowl since 0.3.5): the
+  curvature rises from nothing and falls back to nothing, so there is no
+  point where the bend starts. Each starts where the old curve did. This
+  touches the hooks of f j t y l and ȷ, g's ear, a's spur, ª, α μ π,
+  { } ƒ ∫ √ ℓ @ Q and the drawn ζ ξ ς τ, in every style.
 - Crotches in Medium, Bold and their italics: where a curve meets another
   stroke (b d p q n h m u r a, 6 9 & $ ð æ), the contrast thinning moved
   the two sides apart and joined them with a short flat (46 units wide in

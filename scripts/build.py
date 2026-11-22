@@ -142,6 +142,7 @@ def build(style, redraw):
     hand = ROOT / 'sources' / 'hand-edited.txt'
     skip = {ln.strip() for ln in hand.read_text().splitlines()
             if ln.strip() and not ln.startswith('#')} if hand.exists() else set()
+    eased = modify.ease_corners(tt, skip)
     faired = modify.fair_outlines(tt, skip)
     rename(tt)
     out = ROOT / 'fonts' / 'ttf' / f'{PS_FAMILY}-{style}.ttf'
@@ -152,7 +153,7 @@ def build(style, redraw):
     tt.flavor = 'woff2'
     tt.save(web)
     print(f'{out.name}: {len(added)} glyphs added, {kerned} Greek letters kerned, '
-          f'{len(faired)} outlines smoothed; moved {spaced}, dashes opened {dashed}')
+          f'{len(eased)} corners eased, {len(faired)} outlines smoothed; moved {spaced}, dashes opened {dashed}')
 
 
 if __name__ == '__main__':

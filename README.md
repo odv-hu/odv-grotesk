@@ -44,10 +44,11 @@ Still missing: the rest of the maths symbols (they come when a text needs them -
 | z E F T Z L H | in Medium and Bold the straight bars back to Schibsted's proportion to the thinned stem (about 0.85), so these letters are not darker than the rest |
 | spacing | the bowls of b p þ and d q, and the shoulder of h, have the room Schibsted gave them only in kerned pairs in their sidebearings, so pairs it did not kern (`od`, `bd`, `hu`) sit like the rest. The 1 is a little tighter on the left: its light flag no longer leaves a hole before it, as in 1911 |
 | kerning | no letter is kerned further from a round than from a stem: lowercase rounds (o b p e c s before o d c e q a s), capital rounds (O D Q C G S B P before O C G Q S) and the figures among themselves, so `pod`, `OCO` and `1960` sit evenly. z is pulled half as close to o c e s. The en dash keeps from a figure the distance one 0 keeps from the next, so year ranges such as 1967–2026 are not crowded (set dates in the default figures; tabular figures, `tnum`, are for columns) |
+| corners | where a straight edge turns through a quarter into another by way of a curve (the hooks of f j t y l, g's ear, a's spur, { } ∫ ƒ, the drawn ζ ξ ς τ), the curve is redrawn so its curvature rises from nothing and falls back to nothing, with no point where the bend starts. It starts where the old curve did |
 | curves | Schibsted's own small kinks straightened and curvature steps between quadratic pieces evened out, in every glyph. Smooth points stay smooth when rounded to whole units |
 
 Accented forms (Í, é, ą, ç…), IJ, the fi ligatures and Greek Ι are built from these glyphs and follow them.
-The changes are recipes in [`scripts/modify.py`](scripts/modify.py), applied to each style at build time.
+The changes are recipes in [`scripts/modify.py`](scripts/modify.py) (the terminal taper in [`scripts/taper.py`](scripts/taper.py), the eased corners in [`scripts/fair.py`](scripts/fair.py)), applied to each style at build time.
 
 ## Download
 
