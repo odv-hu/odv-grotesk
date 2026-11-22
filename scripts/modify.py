@@ -66,7 +66,7 @@ import fair
 BIG = 10000
 CHANGED = ('I', 'ı', 'ȷ', 'e', 'a', 'c', 's', 'p', 'uni0307', 'idieresis', 'f', 't', 'z', 'E', 'F', 'T', 'Z', 'L', 'H',
            '!', '?', '¡', '¿', 'exclamdown.case', 'questiondown.case', '.', ',', '‘', '“',
-           'C', 'G', 'S', 'J') + tuple(n + form for n in ('two', 'three', 'five', 'six', 'nine')
+           'r', 'C', 'G', 'S', 'J') + tuple(n + form for n in ('two', 'three', 'five', 'six', 'nine')
                                        for form in ('', '.tf', '.numr'))
 
 # the a's bowl: where the flat top starts, as a share of the counter's width from
@@ -351,6 +351,33 @@ def r_level(f, ch, select):
     """Rule 2 for the capitals and figures: every curved terminal cut level at the
     height of its inner corner, as in e c s."""
     return _level_terminals(f, ch, select), f.adv(ch), 0
+
+
+def _swap(p):
+    """Mirror an outline in the diagonal x = y, so a vertical cut becomes a level one."""
+    return transform(p, a=0, b=1, c=1, d=0)
+
+
+def r_r(f):
+    """Rule 3: the arm ends in a vertical cut instead of one about 8 degrees off it.
+    The cut stands at the tip of the arm, where its top corner is, and the underside
+    is carried on along its own direction to meet it, so the arm keeps its reach and
+    the r its spacing (_cut_level, turned through the diagonal)."""
+    glyph = f.path('r')
+    x0, _, x1, _ = bounds(glyph)
+    steep = lambda a, b, bb: (a[0] > (x0 + x1) / 2 and b[0] > (x0 + x1) / 2
+                              and abs(b[1] - a[1]) > 3 * abs(b[0] - a[0]))
+    (a, b, _), = _terminal_cuts(f, 'r', steep)
+    top, low = (a, b) if a[1] > b[1] else (b, a)
+    rec = DecomposingRecordingPen(f.gs)
+    f.gs[f.name('r')].draw(rec)
+    sh = math.tan(math.radians(f.italic))
+    d = _outer_tangent(rec, low, lambda p: (p[0] - p[1] * sh, p[1]))
+    if d[0] < 0:
+        d = (-d[0], -d[1])
+    sw = lambda p: (p[1], p[0])
+    out = _cut_level(_swap(glyph), sw(top), sw(low), sw(d))
+    return _swap(out), f.adv('r'), 0
 
 
 def r_e(f):
@@ -985,7 +1012,7 @@ def r_a(f):
     return out, f.adv('a'), 0
 
 
-RECIPES = {'I': r_I, 'ı': r_dotlessi, 'ȷ': r_dotlessj, 'p': r_p, 'e': r_e, 'a': r_a, 'c': r_c, 's': r_s, 'uni0307': r_dot,
+RECIPES = {'r': r_r, 'I': r_I, 'ı': r_dotlessi, 'ȷ': r_dotlessj, 'p': r_p, 'e': r_e, 'a': r_a, 'c': r_c, 's': r_s, 'uni0307': r_dot,
            'idieresis': r_idieresis, 'f': r_f, 't': r_t}
 for _base, _sel in LEVEL_CUTS.items():
     for _form in (FIGURE_FORMS if len(_base) > 1 else ('',)):
