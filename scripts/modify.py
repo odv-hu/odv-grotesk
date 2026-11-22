@@ -354,14 +354,16 @@ def _terminal_width(f, ch):
     return thin + TERMINAL_WEIGHT * (side - thin)
 
 
-def _level_terminals(f, ch, select=None, at=0.0, glyph=None):
+def _level_terminals(f, ch, select=None, at=0.0, glyph=None, tapered=None):
     """Cut the slanted terminals of `ch` level (_cut_level), by default at the height
     of the inner corner, the outer edge carried on along its own direction. Cut at
     the inner corner, the stroke then tapers so its end is _terminal_width wide
     (taper.py); the a's top, cut at its tip, keeps its weight."""
     out = glyph if glyph is not None else f.path(ch)
     cuts = _terminal_cuts(f, ch, select)
-    if at == 0.0:
+    if tapered is None:
+        tapered = at == 0.0
+    if tapered:
         rec = DecomposingRecordingPen(f.gs)
         f.gs[f.name(ch)].draw(rec)
         sh = math.tan(math.radians(f.italic))
@@ -369,8 +371,11 @@ def _level_terminals(f, ch, select=None, at=0.0, glyph=None):
         w_end = _terminal_width(f, ch)
     for p_in, p_out, tang in cuts:
         out = _cut_level(out, p_in, p_out, tang, at)
-        if at == 0.0:
-            out = taper.taper(out, cs, p_in, p_out, tang, w_end)
+        if tapered:
+            y_cut = p_in[1] + at * (p_out[1] - p_in[1])
+            out = taper.taper(out, cs, p_in, p_out, tang, w_end, y_cut)
+            if at > 0:
+                out = taper.thin_inner(out, cs, p_in, p_out, INNER_THIN, y_cut)
     return out
 
 
@@ -409,10 +414,22 @@ LEVEL_CUTS = {'C': _cuts('right'), 'G': _cuts('right'), 'S': _cuts(), 'J': _cuts
 FIGURE_FORMS = ('', '.tf', '.numr')     # default, tabular, numerators (superiors, fractions)
 
 
+# where a level cut stands between the inner corner (0, rule 2) and the outer (1), for
+# the exceptions: the 3's left terminals, cut at the inner corner, carried their outer
+# edges 57 units (Regular) past Schibsted's tips and hung towards the middle, so they
+# are cut at the tips. Cut there, the stroke's inner edge meets the cut at a sharp
+# angle and the end reads heavy: the inner edge eases out towards the outer edge by
+# INNER_THIN units at the cut, in every weight (taper.thin_inner): 5 % of the end in
+# Regular, about 3 % in Bold, whose smaller counter flattened at 5 %
+LEVEL_AT = {'three': 1.0}
+INNER_THIN = 8
+
+
 def r_level(f, ch, select):
     """Rule 2 for the capitals and figures: every curved terminal cut level at the
     height of its inner corner, as in e c s."""
-    return _level_terminals(f, ch, select), f.adv(ch), 0
+    at = LEVEL_AT.get(ch.split('.')[0], 0.0)
+    return _level_terminals(f, ch, select, at, tapered=True), f.adv(ch), 0
 
 
 def _extend_to_x(seg, at_end, x):
@@ -665,7 +682,11 @@ def r_idieresis(f):
 
 
 def _from_upright(f, ch):
-    """Italic only: the upright letter, brought to the italic's stem weight."""
+    """Italic only: the upright letter, brought to the italic's stem weight and spaced
+    as the italic spaces its own letters. Un-slanted, Schibsted's italic letters sit
+    f.shift left of where upright ones would (the slant is about mid-x-height), and
+    a little tighter: their sidebearings, taken upright, are those of the upright
+    letters less the median difference over n l h o (about 9 units left, 12 right)."""
     up = f.upright
     if up is None:
         return None
@@ -673,10 +694,14 @@ def _from_upright(f, ch):
     extra = (up.V - f.V) / 2
     if extra > 0.5:
         p = erode_x(p, extra)
+    ref = 'nlho'
+    dl = sorted(f.lsb(c) - up.lsb(c) for c in ref)[len(ref) // 2]
+    dr = sorted(f.rsb(c) - up.rsb(c) for c in ref)[len(ref) // 2]
+    p = move(p, dl - f.shift)
     old = f.hspan(ch, f.xh * 0.5)[0]
     new = _hspan(p, f.xh * 0.5)[0]
-    dx = (new[0] + new[1]) / 2 - (old[0] + old[1] / 2)
-    return p, up.adv(ch), dx
+    dx = (new[0] + new[1]) / 2 - (old[0] + old[1]) / 2
+    return p, round(up.adv(ch) + dl + dr), dx
 
 
 def r_f(f):

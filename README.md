@@ -32,13 +32,13 @@ Still missing: the rest of the maths symbols (they come when a text needs them -
 | a | the top of the bowl runs flat out from the stem and turns down in a corner whose curvature eases in from the flat and out into the bowl, with no point where the bend starts. The terminal at the top is cut level at the height of its tip (upright styles. The italic a is single-storey and unchanged) |
 | c | both terminals cut level |
 | s | both terminals cut level at the height of their inner corners, like e and c, and 3% wider (its stroke weights kept), so it does not read small beside z |
-| C G S J 2 3 5 6 9 | the same: every curved terminal cut level at the height of its inner corner, the outer edge carried on (the tabular figures, superiors and fractions follow) |
+| C G S J 2 3 5 6 9 | the same: every curved terminal cut level at the height of its inner corner, the outer edge carried on (the tabular figures, superiors and fractions follow). The 3 is cut at the height of its tips instead, so its ends do not hang towards the middle |
 | terminals | a curved stroke cut level (c e s C G S J 2 3 5 6 9) does not swell into its end: from the top or bottom of its bowl the outer edge eases in, so the end is a little under halfway (0.45) from the thin to the side of o, O or 0 |
 | r | the arm ends in a vertical cut, like the flags of f j y t. The cut stands at the tip of the arm, so the r keeps its reach and spacing |
 | i j | square dot, top level with the top of l, overhanging the stem by the same amount on each side in every weight (so relatively less in heavier weights). It is the same glyph as the dot accent and the dieresis, so ä ö ü ż İ turn square too |
 | i j | stems a touch heavier than n's (4.5%), so they don't read thin next to round letters: i and j match |
 | p | counter moved right so stem and bowl are equally thick, which widens the join |
-| f t (italics) | the upright f and t slanted, instead of the cursive forms |
+| f t (italics) | the upright f and t slanted, instead of the cursive forms, placed and spaced as the italic places its own letters |
 | . , ! ? | square dots, the size of i's, and a comma with a square head and a straight tail leaning left, cut level (: ; … · ŀ and the quotes ‘ ’ “ ” ‚ „ are made of them and follow) |
 | contrast | Medium and Bold (and their italics) have thinner verticals, so horizontals no longer look thin next to the stems: thin to thick is 0.87 in every weight, about what Schibsted drew its own Italic with. The tops and bottoms of rounds run into short smooth curves instead of the point the thinning would leave, and crotches (b d p q n h m u r a, 6 9 & $) stay a point instead of opening into a short flat. Where an arch or bowl meets a straight stem (n h m u r, b d p q), the arch is thinned less and less towards the stem, so the junction keeps Schibsted's weight |
 | z E F T Z L H | in Medium and Bold the straight bars back to Schibsted's proportion to the thinned stem (about 0.85), so these letters are not darker than the rest |
