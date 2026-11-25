@@ -26,9 +26,9 @@
        its spacing.
     u n h m  (upright only) the bottom of the u's counter symmetric about the middle
        of the stems, instead of sitting low on the left and climbing high into the right
-       stem; the outside of the bowl follows at its old distance, direction by direction,
-       so the stroke keeps its weight all round and the join into the stem drops with the
-       counter. The n, h and each arch of m are the u turned round and get the same
+       stem; on the side that joins the stem the outside of the bowl follows at its old
+       distance, direction by direction, so the join keeps its weight and drops with the
+       counter, and on the round side it keeps Schibsted's own curve (ROUND_KEEP). The n, h and each arch of m are the u turned round and get the same
        (U_SYMMETRY); the two arches of m meet in a new valley where their outsides cross.
     i j  the stem a touch heavier than n's (I_STEM), the same in both, since
        they share the dot and usually stand together; í, ï, ĵ, ij, ι and the
@@ -1269,6 +1269,9 @@ def r_a(f):
 # curve it keeps its distance from the counter, so the stroke is as heavy as before all
 # the way round, the join into the right stem included.
 U_SYMMETRY = 1.0
+ROUND_KEEP = 1.0         # share of Schibsted's own outside kept on the round side (away from
+                         # the notch); the notch side follows the new counter
+ROUND_BLEND = 25.0       # degrees either side of the extreme over which the two blend
 
 
 def _quarter_fit(pts):
@@ -1591,6 +1594,14 @@ def _bowl_parts(p, top, x_notch=None):
     for ang in angles:
         c0, o0, c1 = _at(C, ang), _at(O, ang), _at(C2, ang)
         o2.append((c1[0] + o0[0] - c0[0], c1[1] + o0[1] - c0[1]))
+    if ROUND_KEEP:
+        # on the round side (away from the notch) the outside keeps Schibsted's own
+        # shape, by ROUND_KEEP, blended into the following outside around the extreme
+        def wgt(ang):
+            u = min(1.0, max(0.0, (ROUND_BLEND - ang) / (2 * ROUND_BLEND)))
+            return ROUND_KEEP * u * u * (3 - 2 * u)
+        o2 = [((1 - wgt(ang)) * q[0] + wgt(ang) * _at(O, ang)[0], (1 - wgt(ang)) * q[1] + wgt(ang) * _at(O, ang)[1])
+              for ang, q in zip(angles, o2)]
     te = (math.cos(math.radians(a_end)), math.sin(math.radians(a_end)))
     x_stem = hspan(2)[-1][0] if x_notch is None else x_notch     # the stem edge of the notch
     # the outside ends where it meets that edge: cut there, or carried on along its direction
@@ -1608,7 +1619,7 @@ def _bowl_parts(p, top, x_notch=None):
     cut.lineTo(R, top + 50)
     cut.close()
     t0 = (math.cos(math.radians(a0)), math.sin(math.radians(a0)))
-    return {'o2': o2, 'a0': a0, 't0': t0, 'te': te, 'OL': OL, 'top': top,
+    return {'o2': o2, 'a0': a0, 't0': t0, 'te': te, 'OL': OL, 'top': top, 'x_stem': x_stem,
             'far': R + 0.5 * spans[1][1], 'stem': stem, 'cut': cut}
 
 
@@ -1624,6 +1635,14 @@ def _bowl_path(B, o2, start, t0, t_end, run_start, run_end):
     c1, _ = _fit_cubic(o2[:lowk + 1], start, t0, low, (1, 0))
     c2, _ = _fit_cubic(o2[lowk:], low, (1, 0), E, t_end)
     c1, c2 = _g2_apex(c1, c2)
+    if run_end and E[0] < B['x_stem'] - 0.5 and abs(t_end[0]) > 1e-6:
+        # the outside stops short of the stem edge: fitted again with its last direction
+        # carried on to the edge, so it meets the stem as one curve
+        n = max(2, int((B['x_stem'] - E[0]) / 4))
+        step = (B['x_stem'] - E[0]) / n
+        ext = [(E[0] + step * k, E[1] + step * k * t_end[1] / t_end[0]) for k in range(1, n + 1)]
+        c2, _ = _fit_cubic(o2[lowk:] + ext, low, (1, 0), ext[-1], t_end)
+        c1, c2 = _g2_apex(c1, c2)
     if run_end:
         c2 = _run_on(c2, B['far'], 1.0)
     if run_start:
@@ -1633,7 +1652,10 @@ def _bowl_path(B, o2, start, t0, t_end, run_start, run_end):
     A.lineTo(*c1[0])
     for c in (c1, c2):
         A.cubicTo(*c[1], *c[2], *c[3])
-    A.lineTo(c2[3][0], top)                              # up inside the stem
+    end, te = c2[3], _jet('c', c2, 1.0)[1]
+    end = (end[0] + 4 * te[0], end[1] + 4 * te[1])       # a little on into the stem, so the
+    A.lineTo(*end)                                       # two overlap instead of touching
+    A.lineTo(end[0], top)                                # up inside the stem
     A.close()
     return subtract(union(A, B['stem']), B['cut'])
 

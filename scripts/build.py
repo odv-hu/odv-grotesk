@@ -28,7 +28,7 @@ import modify  # noqa: E402
 import space  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-VERSION = '0.3.9'
+VERSION = '0.3.10'
 FAMILY = 'odv Grotesk'
 PS_FAMILY = 'odvGrotesk'
 UPSTREAM_COMMIT = 'd485f61f105e1b3935f4d21dfb4d371359798603'  # Schibsted Grotesk 1.100

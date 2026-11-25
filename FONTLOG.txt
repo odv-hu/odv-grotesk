@@ -12,6 +12,19 @@ with or endorsed by Schibsted.
 ChangeLog
 ---------
 
+0.3.10 (2026-11-26)
+- u n h m (upright): on the round side of the bowl (the top right of n,
+  the bottom left of u) the outside keeps Schibsted's own curve again,
+  blended over 25 degrees either side of the extreme into the outside that
+  follows the symmetric counter on the side that joins the stem. In 0.3.9
+  the whole outside followed the counter, which pulled the shoulder in;
+  now it keeps its fullness. The stroke there is a little heavier than
+  Schibsted's (at 45 degrees 194 units against 173 in Regular), since the
+  counter is rounder on that side.
+- Where the outside of such a bowl stops short of the stem edge, it is
+  fitted again with its last direction carried on to the edge, so it meets
+  the stem as one curve.
+
 0.3.9 (2026-11-25)
 - Medium and Medium Italic: the shoulders of n h m and a, the bottoms of
   u U J and the bowls of β ß ℓ μ are round again (in Bold β and ß, in
