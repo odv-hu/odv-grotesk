@@ -24,6 +24,12 @@
        about 8 degrees off vertical. The cut stands at the tip and the underside
        runs on along its own curve to it, so the arm keeps its reach and the r
        its spacing.
+    u n h m  (upright only) the bottom of the u's counter symmetric about the middle
+       of the stems, instead of sitting low on the left and climbing high into the right
+       stem; the outside of the bowl follows at its old distance, direction by direction,
+       so the stroke keeps its weight all round and the join into the stem drops with the
+       counter. The n, h and each arch of m are the u turned round and get the same
+       (U_SYMMETRY); the two arches of m meet in a new valley where their outsides cross.
     i j  the stem a touch heavier than n's (I_STEM), the same in both, since
        they share the dot and usually stand together; í, ï, ĵ, ij, ι and the
        fi ligatures follow.
@@ -58,7 +64,7 @@ being joined by a short flat. Where the other stroke is a straight stem (the
 shoulders of n h m u r, the bowls of b d p q), the curve's move eases out to
 nothing at the crotch (SHOULDER_EASE), so the junction keeps its weight.
 
-Č č Ě ě ř Š š Ť Ž ž ǎ Ǧ are single outlines in Schibsted; they are rebuilt as the
+Č č Ě ě ň ř Š š Ť Ž ž ǎ Ǧ are single outlines in Schibsted; they are rebuilt as the
 letter and the caron mark first (_compose_carons), so they follow the letters.
 
 Rule 4 runs over the whole font after the merge (ease_corners, from build.py):
@@ -90,7 +96,7 @@ import taper
 BIG = 10000
 CHANGED = ('I', 'ı', 'ȷ', 'e', 'a', 'c', 's', 'p', 'uni0307', 'idieresis', 'f', 't', 'z', 'E', 'F', 'T', 'Z', 'L', 'H',
            '!', '?', '¡', '¿', 'exclamdown.case', 'questiondown.case', '.', ',', '‘', '“',
-           'r', 'C', 'G', 'S', 'J') + tuple(n + form for n in ('two', 'three', 'five', 'six', 'nine')
+           'r', 'C', 'G', 'S', 'J', 'u', 'n', 'h', 'm') + tuple(n + form for n in ('two', 'three', 'five', 'six', 'nine')
                                        for form in ('', '.tf', '.numr'))
 
 # the a's bowl: where the flat top starts, as a share of the counter's width from
@@ -1168,7 +1174,7 @@ def erosion(f):
 def _erode_all(tt, f, e):
     gs = tt.getGlyphSet()
     glyf, hmtx = tt['glyf'], tt['hmtx']
-    skip = {f.name(ch) for ch in NO_THIN}
+    skip = {f.name(ch) for ch in NO_THIN} | f.thinned
     n = 0
     for name in tt.getGlyphOrder():
         g = glyf[name]
@@ -1256,7 +1262,393 @@ def r_a(f):
     return out, f.adv('a'), 0
 
 
-RECIPES = {'r': r_r, 'I': r_I, 'ı': r_dotlessi, 'ȷ': r_dotlessj, 'p': r_p, 'e': r_e, 'a': r_a, 'c': r_c, 's': r_s, 'uni0307': r_dot,
+# the u's counter: Schibsted draws u as n turned round, so the white sits low on the left
+# and climbs higher into the stem on the right. U_SYMMETRY 1 redraws the bottom of the
+# counter symmetric about the middle of the two stems (its two quarters averaged in shape
+# and steepness), 0 leaves it. The outside of the bowl follows: at every direction of the
+# curve it keeps its distance from the counter, so the stroke is as heavy as before all
+# the way round, the join into the right stem included.
+U_SYMMETRY = 1.0
+
+
+def _quarter_fit(pts):
+    """a, b of the cubic (0,0) (a,0) (1,1-b) (1,1) nearest the normalized points."""
+    best = None
+    for a in [i / 40 for i in range(4, 37)]:
+        for b in [i / 40 for i in range(4, 37)]:
+            P = ((0, 0), (a, 0), (1, 1 - b), (1, 1))
+            cs = [_bez('c', P, t / 60)[0] for t in range(61)]
+            err = sum(min((x - c[0]) ** 2 + (y - c[1]) ** 2 for c in cs) for x, y in pts)
+            if best is None or err < best[0]:
+                best = (err, a, b)
+    return best[1], best[2], (best[0] / len(pts)) ** 0.5
+
+
+def _fit_cubic(pts, P0, t0, P3, t3):
+    """The cubic from P0 leaving along t0 to P3 arriving along t3 nearest the points."""
+    L = math.hypot(P3[0] - P0[0], P3[1] - P0[1])
+    best = None
+    for i in range(5, 96, 2):
+        for j in range(5, 96, 2):
+            a, b = L * i / 100, L * j / 100
+            P = (P0, (P0[0] + a * t0[0], P0[1] + a * t0[1]), (P3[0] - b * t3[0], P3[1] - b * t3[1]), P3)
+            cs = [_bez('c', P, k / 50)[0] for k in range(51)]
+            err = sum(min((x - c[0]) ** 2 + (y - c[1]) ** 2 for c in cs) for x, y in pts[::3])
+            if best is None or err < best[0]:
+                best = (err, P)
+    for _ in range(2):                                   # refine around the best
+        P = best[1]
+        a0 = math.hypot(P[1][0] - P0[0], P[1][1] - P0[1])
+        b0 = math.hypot(P[2][0] - P3[0], P[2][1] - P3[1])
+        for a in [a0 + L * k / 400 for k in range(-8, 9)]:
+            for b in [b0 + L * k / 400 for k in range(-8, 9)]:
+                Q = (P0, (P0[0] + a * t0[0], P0[1] + a * t0[1]), (P3[0] - b * t3[0], P3[1] - b * t3[1]), P3)
+                cs = [_bez('c', Q, k / 80)[0] for k in range(81)]
+                err = sum(min((x - c[0]) ** 2 + (y - c[1]) ** 2 for c in cs) for x, y in pts[::3])
+                if err < best[0]:
+                    best = (err, Q)
+    return best[1], (best[0] / len(pts[::3])) ** 0.5
+
+
+def _g2_apex(c1, c2):
+    """c1 ending and c2 starting level at the same point, their handles there changed
+    so both have the same curvature (the geometric mean of the two): fitted apart, one
+    side of the extreme was much flatter than the other and the top read as a point."""
+    X = c1[3]
+    h1, h2 = abs(c1[1][1] - X[1]), abs(c2[2][1] - X[1])
+    b1, a2 = X[0] - c1[2][0], c2[1][0] - X[0]
+    if min(h1, h2, b1, a2) <= 1e-6:
+        return c1, c2
+    k = math.sqrt((h1 / b1 ** 2) * (h2 / a2 ** 2))       # (2/3 cancels)
+    # and no tighter than the arch is on average further down its sides: where the
+    # thinning had made the top of a bold arch tighter than its sides it read as a peak
+    side = [abs(_jet('c', c, t)[2]) for c in (c1, c2) for t in (0.2, 0.35, 0.5, 0.65, 0.8)]
+    k = min(k, 1.5 * 0.85 * sum(side) / len(side))     # (1.5 undoes the 2/3)
+    b1 = min(math.sqrt(h1 / k), 0.9 * (X[0] - c1[0][0]))
+    a2 = min(math.sqrt(h2 / k), 0.9 * (c2[3][0] - X[0]))
+    return ((c1[0], c1[1], (X[0] - b1, X[1]), X), (X, (X[0] + a2, X[1]), c2[2], c2[3]))
+
+
+def _blossom(P, u, v, w):
+    lerp = lambda a, b, t: (a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1]))
+    Q = [lerp(P[k], P[k + 1], u) for k in range(3)]
+    R = [lerp(Q[k], Q[k + 1], v) for k in range(2)]
+    return lerp(R[0], R[1], w)
+
+
+def _run_on(P, x, end):
+    """The cubic P carried on past its end (end 1.0) or back before its start (0.0)
+    along its own polynomial, so the join has no step in direction or curvature: to
+    where it reaches x, or else as far as it keeps heading that way (up to half its
+    length again)."""
+    X = lambda t: _blossom(P, t, t, t)[0]
+    lim = 1.5 if end else -0.5
+    ts = [end + (lim - end) * k / 200 for k in range(201)]
+    sgn = 1 if X(lim) >= X(end) else -1
+    T = end
+    for t in ts[1:]:
+        if sgn * (X(t) - X(T)) < 0:
+            break                                        # turns back
+        T = t
+        if (X(t) - x) * (X(end) - x) <= 0:
+            break                                        # got there
+    if T == end:
+        return P
+    a, b = (0.0, T) if end else (T, 1.0)
+    return (_blossom(P, a, a, a), _blossom(P, a, a, b), _blossom(P, a, b, b), _blossom(P, b, b, b))
+
+
+def _by_direction(pts):
+    """[(angle in degrees, point)] along a left-to-right polyline, angle of its direction."""
+    out = []
+    for k in range(1, len(pts) - 1):
+        dx, dy = pts[k + 1][0] - pts[k - 1][0], pts[k + 1][1] - pts[k - 1][1]
+        if abs(dx) + abs(dy) < 1e-6:
+            continue
+        out.append((math.degrees(math.atan2(dy, dx)), pts[k]))
+    # keep it monotonic
+    mono = [out[0]]
+    for a, q in out[1:]:
+        if a > mono[-1][0]:
+            mono.append((a, q))
+    return mono
+
+
+def _at(seq, a):
+    """Point of a (angle, point) list at angle a, linearly between samples."""
+    for (a0, p0), (a1, p1) in zip(seq, seq[1:]):
+        if a0 <= a <= a1:
+            u = (a - a0) / (a1 - a0) if a1 > a0 else 0
+            return (p0[0] + u * (p1[0] - p0[0]), p0[1] + u * (p1[1] - p0[1]))
+    return seq[0][1] if a < seq[0][0] else seq[-1][1]
+
+
+def _run(segs, keep):
+    """Samples of the longest contiguous run of segments (cyclic) for which keep(i) holds."""
+    n = len(segs)
+    start = next(i for i in range(n) if not keep(i))
+    runs, cur = [], []
+    for k in range(1, n + 1):
+        i = (start + k) % n
+        if keep(i):
+            cur.append(i)
+        elif cur:
+            runs.append(cur); cur = []
+    if cur:
+        runs.append(cur)
+    run = max(runs, key=len)
+    pts = []
+    for i in run:
+        pts += [_bez(*segs[i], t / 60)[0] for t in range(60)]
+    pts.append(_bez(*segs[run[-1]], 1.0)[0])
+    if pts[0][0] > pts[-1][0]:
+        pts.reverse()
+    return pts
+
+
+def _thinned(f, ch):
+    """The outline of ch with the contrast thinning done first, and ch marked so the
+    thinning skips it later: the symmetric bowl is then drawn on the final weights as
+    clean curves, and its notch made once, as a point, instead of thinning reshaping
+    the new curves (which left kinks at the top of the arches and a step at the notch
+    in Bold)."""
+    p = f.path(ch)
+    if f.erode:
+        p = erode_x(p, f.erode + f.extra_erode.get(f.name(ch), 0))
+    return p
+
+
+def _done_thin(f, ch, out):
+    """out, and ch marked as drawn thinned, if the recipe made it."""
+    if out is not None:
+        f.thinned.add(f.name(ch))
+    return out
+
+
+def r_u(f):
+    if not U_SYMMETRY or f.italic:                  # the italic u has a hooked foot
+        return None
+    out = _done_thin(f, 'u', _symmetric_bowl(_thinned(f, 'u'), f.xh, 'u'))
+    return None if out is None else (out, f.adv('u'), 0)
+
+
+def r_n(f):
+    """n is the u turned round: turned, given the u's counter, and turned back."""
+    if not U_SYMMETRY or f.italic:
+        return None
+    turn = lambda q: transform(q, -1, 0, 0, -1, f.adv('n'), f.xh)
+    out = _done_thin(f, 'n', _symmetric_bowl(turn(_thinned(f, 'n')), f.xh, 'n'))
+    return None if out is None else (turn(out), f.adv('n'), 0)
+
+
+def r_h(f):
+    """h has n's shoulder: turned, given the u's counter, and turned back."""
+    if not U_SYMMETRY or f.italic:
+        return None
+    turn = lambda q: transform(q, -1, 0, 0, -1, f.adv('h'), f.xh)
+    out = _done_thin(f, 'h', _symmetric_bowl(turn(_thinned(f, 'h')), f.xh, 'h'))
+    return None if out is None else (turn(out), f.adv('h'), 0)
+
+
+def r_m(f):
+    """Each arch of m as an n: the m is cut at the valley between the arches (V) into
+    the left arch with the middle stem and the right arch with the middle stem below V;
+    each is turned and given the u's counter and outside. The two new outsides are
+    carried on (straight) towards each other, and both are then drawn as curves ending
+    exactly where they cross: the new valley, a point."""
+    if not U_SYMMETRY or f.italic:
+        return None
+    p, adv, xh = _thinned(f, 'm'), f.adv('m'), f.xh
+    spans = _hspan(p, xh * 0.2)
+    if len(spans) != 3:
+        return None
+    (ml, mr) = spans[1]
+    tops = []
+    for k in range(1, int(2 * (mr - ml))):
+        x = ml + k / 2
+        tops.append((_vspan(p, x)[-1][1], x))
+    yV, xV = min(tops)
+    if not xh * 0.5 < yV < xh:
+        return None
+    left = intersect(p, union(rect(-BIG, -BIG, xV, BIG), rect(xV, -BIG, mr, yV)))
+    right = intersect(p, union(rect(xV, -BIG, BIG, BIG), rect(ml, -BIG, xV, yV)))
+    turn = lambda q: transform(q, -1, 0, 0, -1, adv, xh)
+    tp = lambda q: (adv - q[0], xh - q[1])               # a point, turned (and back)
+    BL = _bowl_parts(turn(left), xh)
+    BR = _bowl_parts(turn(right), xh, x_notch=adv - xV)
+    if BL is None or BR is None:
+        return None
+    # in the m's own frame: the left arch's outside from the valley end on, the right
+    # arch's up to its valley end, each with a straight run beyond that end
+    a_pts = [tp(q) for q in BL['o2']]
+    b_pts = [tp(q) for q in BR['o2']]
+    ea = (BL['t0'][0], BL['t0'][1])                      # -t0 turned: away from the curve
+    eb = (-BR['te'][0], -BR['te'][1])
+    run = 3 * f.V
+    A = [(a_pts[0][0] + ea[0] * run * (1 - k / 20), a_pts[0][1] + ea[1] * run * (1 - k / 20)) for k in range(20)] + a_pts
+    Bp = b_pts + [(b_pts[-1][0] + eb[0] * run * k / 20, b_pts[-1][1] + eb[1] * run * k / 20) for k in range(1, 21)]
+    hit = None
+    for i in range(len(A) - 1):
+        for j in range(len(Bp) - 1):
+            X = _seg_cross(A[i], A[i + 1], Bp[j], Bp[j + 1])
+            if X is not None:
+                hit = (i, j, X)
+                break
+        if hit:
+            break
+    if hit is None:
+        return None
+    i, j, X = hit
+    # left arch (turned frame): starts at X
+    if i < 20:
+        oL, tL = [tp(X)] + BL['o2'], BL['t0']
+    else:
+        k = i - 20
+        oL = [tp(X)] + BL['o2'][k + 1:]
+        q0, q1 = BL['o2'][k], BL['o2'][k + 1]
+        n = math.hypot(q1[0] - q0[0], q1[1] - q0[1])
+        tL = ((q1[0] - q0[0]) / n, (q1[1] - q0[1]) / n)
+    # right arch (turned frame): ends at X
+    if j >= len(b_pts) - 1:
+        oR, tR = BR['o2'] + [tp(X)], BR['te']
+    else:
+        oR = BR['o2'][:j + 1] + [tp(X)]
+        q0, q1 = BR['o2'][j], BR['o2'][j + 1]
+        n = math.hypot(q1[0] - q0[0], q1[1] - q0[1])
+        tR = ((q1[0] - q0[0]) / n, (q1[1] - q0[1]) / n)
+    a = _bowl_path(BL, oL, tp(X), tL, BL['te'], False, True)
+    b = _bowl_path(BR, oR, (BR['OL'], oR[0][1]), (0, -1), tR, False, False)
+    return _done_thin(f, 'm', union(turn(a), turn(b), rect(ml, 0, mr, X[1]))), adv, 0
+
+
+def _seg_cross(p0, p1, q0, q1):
+    """Where segments p0p1 and q0q1 cross, or None."""
+    d1 = (p1[0] - p0[0], p1[1] - p0[1])
+    d2 = (q1[0] - q0[0], q1[1] - q0[1])
+    den = d1[0] * d2[1] - d1[1] * d2[0]
+    if abs(den) < 1e-12:
+        return None
+    t = ((q0[0] - p0[0]) * d2[1] - (q0[1] - p0[1]) * d2[0]) / den
+    u = ((q0[0] - p0[0]) * d1[1] - (q0[1] - p0[1]) * d1[0]) / den
+    if 0 <= t <= 1 and 0 <= u <= 1:
+        return (p0[0] + t * d1[0], p0[1] + t * d1[1])
+    return None
+
+
+def _bowl_parts(p, top, x_notch=None):
+    """For the u-shaped `p` (two stems up to `top`, the bowl at the bottom joining the
+    right stem in a notch): the new symmetric counter (as the outline to cut away), the
+    new outside as points (the old distance from counter to outside kept direction by
+    direction), and what is needed to draw the bowl around them; None if `p` is not
+    such a shape. The notch is on the stem edge at x_notch (by default the one it ends
+    on)."""
+    hspan = lambda y: [(a, b - a) for a, b in _hspan(p, y)]
+    cs = _contours(p)
+    spans = hspan(top * 0.8)
+    if len(cs) != 1 or len(spans) != 2:
+        return None
+    OL, L, R = spans[0][0], spans[0][0] + spans[0][1], spans[1][0]
+    segs = [(k, [tuple(q) for q in P]) for k, P in _segments(cs[0])]
+    segs = [sg for sg in segs if max(abs(q[0] - sg[1][0][0]) + abs(q[1] - sg[1][0][1]) for q in sg[1]) > 2]
+    mid = lambda i: _bez(*segs[i], 0.5)[0]
+    white = [c for c in _contours(subtract(rect(L, 0, R, top), p)) if c.bounds[3] > top - 1]
+    if len(white) != 1:
+        return None
+    wsamp = []
+    for k, P in _segments(white[0]):
+        wsamp += [_bez(k, P, t / 20)[0] for t in range(20)]
+    on_white = lambda q: min((q[0] - w[0]) ** 2 + (q[1] - w[1]) ** 2 for w in wsamp) < 1.0
+    counter = _run(segs, lambda i: segs[i][0] != 'l' and on_white(mid(i)))
+    outer = _run(segs, lambda i: segs[i][0] != 'l' and not on_white(mid(i)) and mid(i)[1] < top * 0.6
+                 and OL - 1 < mid(i)[0] < R + 0.25 * (R - L))
+    C, O = _by_direction(counter), _by_direction(outer)
+    a_end = O[-1][0]                                     # direction at the notch
+    # the counter as it is, measured
+    ybot = min(q[1] for q in counter)
+    xm = sum(q[0] for q in counter if q[1] < ybot + 0.5) / len([q for q in counter if q[1] < ybot + 0.5])
+    left = [q for q in counter if q[0] <= xm]
+    right = [q for q in counter if q[0] >= xm]
+    yl, yr = max(q[1] for q in left), max(q[1] for q in right)
+    hl, hr, wl, wr = yl - ybot, yr - ybot, xm - L, R - xm
+    al, bl, _ = _quarter_fit([((xm - x) / wl, (y - ybot) / hl) for x, y in left])
+    ar, br, _ = _quarter_fit([((x - xm) / wr, (y - ybot) / hr) for x, y in right])
+    w = (R - L) / 2
+    H = w * (hl / wl + hr / wr) / 2
+    t = U_SYMMETRY
+    lerp = lambda u, v: u + t * (v - u)
+    WL, WR, HL, HR = lerp(wl, w), lerp(wr, w), lerp(hl, H), lerp(hr, H)
+    a, b = (al + ar) / 2, (bl + br) / 2
+    AL, BL, AR, BR = lerp(al, a), lerp(bl, b), lerp(ar, a), lerp(br, b)
+    xl = L + WL
+    q1 = ((L, ybot + HL), (L, ybot + HL * (1 - BL)), (xl - WL * AL, ybot), (xl, ybot))
+    q2 = ((xl, ybot), (xl + WR * AR, ybot), (R, ybot + HR * (1 - BR)), (R, ybot + HR))
+    new_c = [_bez('c', q1, k / 120)[0] for k in range(121)] + [_bez('c', q2, k / 120)[0] for k in range(1, 121)]
+    C2 = _by_direction(new_c)
+    # the outside: new counter + the old distance from counter to outside, direction by direction
+    a0 = max(-89.5, O[0][0])
+    angles = [a0 + k * 0.5 for k in range(int((a_end - a0) / 0.5) + 1)]
+    o2 = []
+    for ang in angles:
+        c0, o0, c1 = _at(C, ang), _at(O, ang), _at(C2, ang)
+        o2.append((c1[0] + o0[0] - c0[0], c1[1] + o0[1] - c0[1]))
+    te = (math.cos(math.radians(a_end)), math.sin(math.radians(a_end)))
+    x_stem = hspan(2)[-1][0] if x_notch is None else x_notch     # the stem edge of the notch
+    # the outside ends where it meets that edge: cut there, or carried on along its direction
+    for k in range(1, len(o2)):
+        if o2[k][0] >= x_stem:
+            (x0, y0), (x1, y1) = o2[k - 1], o2[k]
+            o2 = o2[:k] + [(x_stem, y0 + (y1 - y0) * (x_stem - x0) / (x1 - x0))]
+            break
+    stem = intersect(p, rect(x_stem, -BIG, BIG, BIG))
+    cut = pathops.Path()
+    cut.moveTo(L, top + 50)
+    cut.lineTo(*q1[0])
+    cut.cubicTo(*q1[1], *q1[2], *q1[3])
+    cut.cubicTo(*q2[1], *q2[2], *q2[3])
+    cut.lineTo(R, top + 50)
+    cut.close()
+    t0 = (math.cos(math.radians(a0)), math.sin(math.radians(a0)))
+    return {'o2': o2, 'a0': a0, 't0': t0, 'te': te, 'OL': OL, 'top': top,
+            'far': R + 0.5 * spans[1][1], 'stem': stem, 'cut': cut}
+
+
+def _bowl_path(B, o2, start, t0, t_end, run_start, run_end):
+    """The bowl of _bowl_parts B with its outside drawn through the points o2, from
+    `start` leaving along t0 to the last point arriving along t_end: two cubics meeting
+    level at the extreme with the same curvature. run_start / run_end carry the curve on
+    along its own polynomial into the stem at that end (so another stroke crossing it
+    there meets it as a curve)."""
+    top = B['top']
+    lowk = min(range(len(o2)), key=lambda k: o2[k][1])
+    low, E = o2[lowk], o2[-1]
+    c1, _ = _fit_cubic(o2[:lowk + 1], start, t0, low, (1, 0))
+    c2, _ = _fit_cubic(o2[lowk:], low, (1, 0), E, t_end)
+    c1, c2 = _g2_apex(c1, c2)
+    if run_end:
+        c2 = _run_on(c2, B['far'], 1.0)
+    if run_start:
+        c1 = _run_on(c1, B['OL'], 0.0)
+    A = pathops.Path()
+    A.moveTo(c1[0][0], top)                              # down inside the stem
+    A.lineTo(*c1[0])
+    for c in (c1, c2):
+        A.cubicTo(*c[1], *c[2], *c[3])
+    A.lineTo(c2[3][0], top)                              # up inside the stem
+    A.close()
+    return subtract(union(A, B['stem']), B['cut'])
+
+
+def _symmetric_bowl(p, top, name, x_notch=None):
+    """The u-shaped `p` with the bottom of its counter symmetric and its outside
+    following (see _bowl_parts)."""
+    B = _bowl_parts(p, top, x_notch)
+    if B is None:
+        return None
+    o2 = B['o2']
+    return _bowl_path(B, o2, (B['OL'], o2[0][1]), (0, -1), B['te'], False, True)
+
+
+RECIPES = {'u': r_u, 'n': r_n, 'h': r_h, 'm': r_m, 'r': r_r, 'I': r_I, 'ı': r_dotlessi, 'ȷ': r_dotlessj, 'p': r_p, 'e': r_e, 'a': r_a, 'c': r_c, 's': r_s, 'uni0307': r_dot,
            'idieresis': r_idieresis, 'f': r_f, 't': r_t}
 for _base, _sel in LEVEL_CUTS.items():
     for _form in (FIGURE_FORMS if len(_base) > 1 else ('',)):
@@ -1374,6 +1766,7 @@ def round_smooth(g):
     g.coordinates = GlyphCoordinates(out)
 
 
+
 # ---------- smoothing what Schibsted left (issue #19) ----------
 
 FAIR_KINK = (0.5, 10.0)  # smooth points turning this much (degrees) are straightened
@@ -1483,6 +1876,11 @@ def fair_contour(pts, xh):
 EASE_REACH = 1.0
 EASE_TURN = (60, 120)    # degrees: what counts as a quarter turn
 EASE_MAX_CURVES = 4      # curve pieces between the two straight edges
+# a straight piece that runs on smoothly into a curve turning the same way, and is short
+# beside the turn (this share of the chord across it), is a pause in one round curve,
+# not an edge: the short flat thinning leaves at the extreme of an arch or bowl (n h m u
+# a U J β ß ℓ μ in the thinned weights). Easing it would square the whole arch.
+EASE_PAUSE = 0.25
 
 
 def _unit2(v):
@@ -1510,9 +1908,27 @@ def _quarter_turns(segs):
         if d1[0] * t0[0] + d1[1] * t0[1] < 0.999 or d2[0] * t1[0] + d2[1] * t1[1] < 0.999:
             continue
         turn = math.degrees(math.acos(max(-1.0, min(1.0, d1[0] * d2[0] + d1[1] * d2[1]))))
-        if EASE_TURN[0] < turn < EASE_TURN[1]:
-            out.append((i, j, d1, d2))
+        if not EASE_TURN[0] < turn < EASE_TURN[1]:
+            continue
+        sense = d1[0] * d2[1] - d1[1] * d2[0]
+        chord = math.hypot(B[0][0] - A[1][0], B[0][1] - A[1][1])
+        if (_pause(segs[(i - 1) % n], A, d1, sense, chord, True)
+                or _pause(segs[(j + 1) % n], B, d2, sense, chord, False)):
+            continue
+        out.append((i, j, d1, d2))
     return out
+
+
+def _pause(nb, S, d, sense, chord, before):
+    """Whether straight piece S (direction d) is a pause in a round curve: short beside
+    the turn and carried on smoothly, turning the same way, by its outer neighbour nb."""
+    if nb[0] == 'l' or math.hypot(S[1][0] - S[0][0], S[1][1] - S[0][1]) >= EASE_PAUSE * chord:
+        return False
+    ta, tb = _jet(*nb, 0.0)[1], _jet(*nb, 1.0)[1]
+    t = tb if before else ta
+    if d[0] * t[0] + d[1] * t[1] < 0.995:      # thinning can leave a hair of a kink here
+        return False
+    return (ta[0] * tb[1] - ta[1] * tb[0]) * sense > 0
 
 
 def _ease_contour(segs):
@@ -1791,7 +2207,7 @@ def _place_dot_components(tt, font):
 # rebuilt as composites of the letter and uni030C, which their carons are, to a unit
 CARONED = {'Ccaron': 'C', 'ccaron': 'c', 'Ecaron': 'E', 'ecaron': 'e', 'rcaron': 'r',
            'Scaron': 'S', 'scaron': 's', 'Tcaron': 'T', 'Zcaron': 'Z', 'zcaron': 'z',
-           'uni01CE': 'a', 'Gcaron': 'G'}
+           'uni01CE': 'a', 'Gcaron': 'G', 'ncaron': 'n'}
 
 
 def _compose_carons(tt):
@@ -1848,6 +2264,7 @@ def modify(tt, font, src=None):
     `font` is draw.Font on the same file `src`."""
     font.erode = erosion(font)
     font.extra_erode = {}                      # glyph -> thinning on top of font.erode
+    font.thinned = set()                       # glyphs a recipe drew already thinned
     font.upright = _upright_of(src) if src else None
     done = _compose_carons(tt)
     for ch in CHANGED:

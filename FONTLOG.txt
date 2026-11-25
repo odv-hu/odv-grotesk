@@ -12,6 +12,31 @@ with or endorsed by Schibsted.
 ChangeLog
 ---------
 
+0.3.9 (2026-11-25)
+- Medium and Medium Italic: the shoulders of n h m and a, the bottoms of
+  u U J and the bowls of β ß ℓ μ are round again (in Bold β and ß, in
+  Bold Italic J). The short
+  flat that the thinning leaves at the top of an arch was taken for a
+  straight edge by the corner rule, which then redrew the whole shoulder
+  as one squared corner. A straight piece that is short beside the turn
+  and runs on smoothly into a curve turning the same way is now a pause
+  in the curve, not an edge, and is left alone.
+- u n h m (upright): the bottom of the counter is symmetric about the
+  middle of the two stems. Schibsted draws u as n turned round, with the
+  white low on one side and climbing high into the other stem (in Regular
+  the lowest point sat 46 units off the middle). The two halves are now
+  averaged in shape and steepness and mirrored, and the outside of the
+  bowl follows at its old distance from the counter, direction by
+  direction, so the stroke keeps its weight all round, the join into the
+  stem included; the notch drops by 48 units in Regular, 43 in Medium and
+  19 in Bold. The n, h and each arch of m are the u turned round; the m's
+  arches meet in a point where their new outsides cross. In Medium and
+  Bold these letters are drawn on the thinned stems, so the thinning does
+  not reshape the new curves: the tops are smooth, with the same
+  curvature on both sides of the extreme and no tighter than the sides,
+  and the notch is a point. The italics keep their n u h m.
+- ň is rebuilt as n and its caron, like č ě ř, so it follows the n.
+
 0.3.8 (2026-11-22)
 - Italics: the upright f and t (which replace the cursive forms) sat about
   115 units too far right: the italic is slanted about mid-x-height, and
