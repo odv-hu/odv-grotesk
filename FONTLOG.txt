@@ -12,7 +12,7 @@ with or endorsed by Schibsted.
 ChangeLog
 ---------
 
-Unreleased
+0.3.10 (2026-11-26)
 - u n h m (upright): on the round side of the bowl (the top right of n,
   the bottom left of u) the outside keeps Schibsted's own curve again,
   blended over 25 degrees either side of the extreme into the outside that
