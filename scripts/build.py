@@ -1,8 +1,8 @@
 """Build odv Grotesk from Schibsted Grotesk: reshaped I, a, e plus the added glyphs,
 Greek accents (scripts/accents.py), the Greek letters kerned like their Latin
 models, rounds no longer kerned apart and en dashes spaced from figures
-(scripts/kern.py), and sidebearings taken over from Schibsted's kerning
-(scripts/space.py).
+(scripts/kern.py), sidebearings taken over from Schibsted's kerning
+(scripts/space.py), and equal-width figures by default (scripts/figures.py).
 
     python3 scripts/build.py            # draw the added glyphs, then build all styles
     python3 scripts/build.py --no-draw  # build from sources/*.ufo as they are
@@ -23,12 +23,13 @@ from fontTools.ttLib import TTFont
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import accents  # noqa: E402
 import draw  # noqa: E402
+import figures  # noqa: E402
 import kern  # noqa: E402
 import modify  # noqa: E402
 import space  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-VERSION = '0.3.10'
+VERSION = '0.3.11'
 FAMILY = 'odv Grotesk'
 PS_FAMILY = 'odvGrotesk'
 UPSTREAM_COMMIT = 'd485f61f105e1b3935f4d21dfb4d371359798603'  # Schibsted Grotesk 1.100
@@ -144,6 +145,7 @@ def build(style, redraw):
             if ln.strip() and not ln.startswith('#')} if hand.exists() else set()
     eased = modify.ease_corners(tt, skip)
     faired = modify.fair_outlines(tt, skip)
+    figured = figures.figures(tt, style)
     rename(tt)
     out = ROOT / 'fonts' / 'ttf' / f'{PS_FAMILY}-{style}.ttf'
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -153,7 +155,8 @@ def build(style, redraw):
     tt.flavor = 'woff2'
     tt.save(web)
     print(f'{out.name}: {len(added)} glyphs added, {kerned} Greek letters kerned, '
-          f'{len(eased)} corners eased, {len(faired)} outlines smoothed; moved {spaced}, dashes opened {dashed}')
+          f'{len(eased)} corners eased, {len(faired)} outlines smoothed; moved {spaced}, dashes opened {dashed}; '
+          f'figures {figured}')
 
 
 if __name__ == '__main__':

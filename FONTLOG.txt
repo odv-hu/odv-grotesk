@@ -12,6 +12,20 @@ with or endorsed by Schibsted.
 ChangeLog
 ---------
 
+0.3.11 (2026-11-26)
+- Figures are equal width by default (they were proportional), so columns
+  of numbers line up in programs that apply no OpenType features, such as
+  CAD and drafting software. Each figure is its proportional drawing in a
+  narrower slot than Schibsted's tabular figures: 1200 units instead of
+  1300 in Regular and Medium (and their italics), so the two line up with
+  each other, and 1260 in Bold, so its 4 has the room Medium's 4 has. The 1
+  keeps Schibsted's tabular 1, with a foot. The proportional figures are
+  still there behind pnum; tnum now changes nothing. Fractions, numerators,
+  denominators, superiors, ordinals and the zero feature work from either.
+- The equal-width figures are not kerned, except against the en dash,
+  which keeps from them the distance one 0 keeps from the next, as it does
+  from the proportional figures.
+
 0.3.10 (2026-11-26)
 - u n h m (upright): on the round side of the bowl (the top right of n,
   the bottom left of u) the outside keeps Schibsted's own curve again,
