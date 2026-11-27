@@ -88,6 +88,22 @@ python3 scripts/build.py Regular      # one style
 python3 scripts/specimen.py           # redraw preview/glyphs.svg from the built fonts
 ```
 
+Every pull request that touches `scripts/`, `sources/` or the requirements gets a glyph
+check ([`.github/workflows/check.yml`](.github/workflows/check.yml)): both the base branch
+and the pull request are built, and [`scripts/check.py`](scripts/check.py) lists every glyph
+whose outline or advance changed, reports new kinks (a point that was smooth now turning by
+more than 0.5°) and new curvature steps (one side of a join more than 1.8 times as curved as
+the other), all measured on the final TrueType outlines and only where they are new or worse
+than in the base build. It renders each changed glyph before and after, filled and as
+outlines with points, with close-ups of the new defects, and a text line per style. The
+summary goes into a comment on the pull request and the images into the `glyph-check`
+artifact. New kinks fail the check. Locally:
+
+```sh
+pip install -r requirements-check.txt
+python3 scripts/check.py base/ttf head/ttf glyph-check   # two folders of odvGrotesk-*.ttf
+```
+
 ## odv Math
 
 The equations go with odv Grotesk in Computer Modern. **odv Math** is New Computer Modern Math Book enlarged to 112 %, the size at which odv-latex sets it next to the grotesk, so Keynote and odv.hu (where it can be MathML's `math` font) get the same size from the same file at its nominal size. [`scripts/odvmath.py`](scripts/odvmath.py) downloads the pinned New Computer Modern and changes only `unitsPerEm` (1000 → 893): the outlines, metrics and `MATH` table are New Computer Modern's. It is renamed and keeps its own licence, the GUST Font License `GUST-FONT-LICENSE.txt` and `README-odvMath.txt` come with it in the release.

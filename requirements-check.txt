@@ -1,0 +1,4 @@
+# for scripts/check.py (the pull request glyph check), on top of requirements.txt
+freetype-py>=2.4
+uharfbuzz>=0.40
+Pillow>=10
