@@ -17,7 +17,9 @@ README-odvMath.txt go with it.
 Writes fonts/otf/odvMath-Regular.otf and fonts/webfonts/odvMath-Regular.woff2.
 """
 import hashlib
+import http.client
 import sys
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -27,13 +29,30 @@ ROOT = Path(__file__).resolve().parent.parent
 SCALE = 1.12                      # = odv.sty's default mathscale
 FAMILY, PS_NAME = 'odv Math', 'odvMath-Regular'
 NEWCM_VERSION = '8.1.1'           # CTAN keeps only the latest: a new upstream fails the hash
-NEWCM_URL = 'https://mirrors.ctan.org/fonts/newcomputermodern/otf/NewCMMath-Book.otf'
+NEWCM_PATH = 'fonts/newcomputermodern/otf/NewCMMath-Book.otf'     # in the CTAN tree
 NEWCM_SHA256 = '2ea09ebc9167b1e1a66f31390dc917f2d4004ecfca72d51b28010e4ad6becd95'  # 8.1.1, licence checked: GFL
-NEWCM_LICENSE_URL = 'https://mirrors.ctan.org/fonts/newcomputermodern/License.txt'
+NEWCM_LICENSE_PATH = 'fonts/newcomputermodern/License.txt'
 GFL_URL = 'https://tug.org/fonts/licenses/GUST-FONT-LICENSE.txt'
+GFL_PATH = 'fonts/tex-gyre/doc/GUST-FONT-LICENSE.txt'                # a copy on CTAN, as fallback
+# mirrors.ctan.org redirects each request to a random mirror, and a broken one can fail
+# a release (#24). So: the redirector a few times (each try gets a new mirror), then two
+# fixed, well-kept mirrors with the same tree.
+CTAN_REDIRECTOR = 'https://mirrors.ctan.org/'
+CTAN_REDIRECTOR_TRIES = 3
+CTAN_MIRRORS = ['https://ftp.fau.de/ctan/', 'https://ctan.math.utah.edu/ctan/tex-archive/']
+TIMEOUT = 60                      # seconds per attempt
 SOURCE = ('New Computer Modern Math Book {v} by Antonis Tsolomitis '
           '(https://ctan.org/pkg/newcomputermodern), after Computer Modern by Donald E. Knuth')
 CHANGE = 'scaled to 112 % (unitsPerEm {a} -> {b}) and renamed odv Math'
+
+
+def ctan(path):
+    """Download addresses for a file in the CTAN tree, in the order to try them."""
+    return [CTAN_REDIRECTOR + path] * CTAN_REDIRECTOR_TRIES + [m + path for m in CTAN_MIRRORS]
+
+
+def matches_pin(data):
+    return NEWCM_SHA256 is not None and hashlib.sha256(data).hexdigest() == NEWCM_SHA256
 
 
 def check(path):
@@ -48,17 +67,41 @@ def check(path):
                          f'NEWCM_VERSION and NEWCM_SHA256.')
 
 
-def fetch(url, name):
+def fetch(urls, name, accept=None, hint=''):
+    """Download name into upstream/ from the first of urls that works, unless it is there.
+
+    A source is skipped on a network or TLS error, and also when accept(data) is false
+    (for the font: its checksum does not match the pin), so the next source is tried.
+    The log says which address the file finally came from."""
     path = ROOT / 'upstream' / name
-    if not path.exists():
-        path.parent.mkdir(exist_ok=True)
-        print(f'downloading {name}')
-        urllib.request.urlretrieve(url, path)
-    return path
+    if path.exists():
+        return path
+    path.parent.mkdir(exist_ok=True)
+    failures = []
+    for url in urls:
+        try:
+            with urllib.request.urlopen(url, timeout=TIMEOUT) as response:
+                data, final = response.read(), response.geturl()
+        except (urllib.error.URLError, http.client.HTTPException, OSError) as error:
+            failures.append(f'{url}: {error}')
+            print(f'  {name}: {url} failed ({error}), trying the next source')
+            continue
+        if accept is not None and not accept(data):
+            digest = hashlib.sha256(data).hexdigest()
+            failures.append(f'{final}: unexpected content (sha256 {digest})')
+            print(f'  {name}: {final} sent different content (sha256 {digest}), trying the next source')
+            continue
+        path.write_bytes(data)
+        print(f'downloaded {name} from {final}')
+        return path
+    raise SystemExit(f'could not download {name}:\n  ' + '\n  '.join(failures) + (f'\n{hint}' if hint else ''))
 
 
 def source():
-    path = fetch(NEWCM_URL, 'NewCMMath-Book.otf')
+    accept = matches_pin if NEWCM_SHA256 is not None else None
+    path = fetch(ctan(NEWCM_PATH), 'NewCMMath-Book.otf', accept,
+                 hint='If every mirror sends the same other sha256, CTAN has a new New Computer '
+                      'Modern: check its License.txt, then update NEWCM_VERSION and NEWCM_SHA256.')
     check(path)
     return path
 
@@ -87,8 +130,11 @@ def licence_files(note):
     the font, so they travel with it in the release zip."""
     out = ROOT / 'fonts' / 'otf'
     out.mkdir(parents=True, exist_ok=True)
-    (out / 'GUST-FONT-LICENSE.txt').write_bytes(fetch(GFL_URL, 'GUST-FONT-LICENSE.txt').read_bytes())
-    (out / 'NewCM-License.txt').write_bytes(fetch(NEWCM_LICENSE_URL, 'NewCM-License.txt').read_bytes())
+    # no checksum for the licences: any mirror's copy will do
+    gfl = fetch([GFL_URL] + ctan(GFL_PATH), 'GUST-FONT-LICENSE.txt')
+    (out / 'GUST-FONT-LICENSE.txt').write_bytes(gfl.read_bytes())
+    newcm = fetch(ctan(NEWCM_LICENSE_PATH), 'NewCM-License.txt')
+    (out / 'NewCM-License.txt').write_bytes(newcm.read_bytes())
     (out / 'README-odvMath.txt').write_text(README.format(note=note))
 
 
