@@ -6,6 +6,7 @@ models, rounds no longer kerned apart and en dashes spaced from figures
 
     python3 scripts/build.py            # draw the added glyphs, then build all styles
     python3 scripts/build.py --no-draw  # build from sources/*.ufo as they are
+    python3 scripts/build.py --hint     # also hint the .ttf files with ttfautohint (#20)
 
 Downloads the pinned Schibsted Grotesk release into upstream/ on first run,
 writes fonts/ttf/*.ttf (desktop, LuaLaTeX) and fonts/webfonts/*.woff2 (web).
@@ -24,6 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import accents  # noqa: E402
 import draw  # noqa: E402
 import figures  # noqa: E402
+import hint  # noqa: E402
 import kern  # noqa: E402
 import modify  # noqa: E402
 import space  # noqa: E402
@@ -127,7 +129,7 @@ def rename(tt):
     os2.ulCodePageRange1 |= 1 << 3           # 1253 Greek
 
 
-def build(style, redraw):
+def build(style, redraw, hinted=False):
     src = upstream(style)
     ufo_path = ROOT / 'sources' / f'{style}.ufo'
     if redraw or not ufo_path.exists():
@@ -149,20 +151,22 @@ def build(style, redraw):
     rename(tt)
     out = ROOT / 'fonts' / 'ttf' / f'{PS_FAMILY}-{style}.ttf'
     out.parent.mkdir(parents=True, exist_ok=True)
-    tt.save(out)
+    # hints on the .ttf only, the webfonts stay unhinted (scripts/hint.py)
+    (hint.hint(tt) if hinted else tt).save(out)
     web = ROOT / 'fonts' / 'webfonts' / f'{PS_FAMILY}-{style}.woff2'
     web.parent.mkdir(parents=True, exist_ok=True)
     tt.flavor = 'woff2'
     tt.save(web)
     print(f'{out.name}: {len(added)} glyphs added, {kerned} Greek letters kerned, '
           f'{len(eased)} corners eased, {len(faired)} outlines smoothed; moved {spaced}, dashes opened {dashed}; '
-          f'figures {figured}')
+          f'figures {figured}' + ('; hinted with ttfautohint' if hinted else ''))
 
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
     ap.add_argument('--no-draw', action='store_true', help='use sources/*.ufo as they are')
+    ap.add_argument('--hint', action='store_true', help='hint the .ttf files with ttfautohint (#20)')
     ap.add_argument('styles', nargs='*', default=STYLES)
     a = ap.parse_args()
     for st in a.styles:
-        build(st, not a.no_draw)
+        build(st, not a.no_draw, a.hint)
