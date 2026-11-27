@@ -1,3 +1,4 @@
 fonttools[woff]>=4.50
 skia-pathops>=0.8
 ufoLib2>=0.16
+ttfautohint-py>=0.5          # only for build.py --hint (scripts/hint.py)

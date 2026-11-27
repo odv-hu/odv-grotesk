@@ -88,6 +88,18 @@ python3 scripts/build.py Regular      # one style
 python3 scripts/specimen.py           # redraw preview/glyphs.svg from the built fonts
 ```
 
+The released fonts are unhinted (#6). To try TrueType hinting for Windows screens at
+standard resolution (#20), build with `--hint`: [`scripts/hint.py`](scripts/hint.py) runs
+ttfautohint over the finished `.ttf` files, with the same options for all six styles, and
+leaves the webfonts unhinted. [`scripts/hintsheet.py`](scripts/hintsheet.py) draws small
+text with and without hints, next to Schibsted Grotesk, for comparison:
+
+```sh
+python3 scripts/hint.py fonts/ttf/*.ttf -o hinted/        # hint an existing build
+pip install -r requirements-check.txt                     # freetype-py, uharfbuzz, Pillow
+python3 scripts/hintsheet.py fonts/ttf hinted preview/hinting.png upstream
+```
+
 ## odv Math
 
 The equations go with odv Grotesk in Computer Modern. **odv Math** is New Computer Modern Math Book enlarged to 112 %, the size at which odv-latex sets it next to the grotesk, so Keynote and odv.hu (where it can be MathML's `math` font) get the same size from the same file at its nominal size. [`scripts/odvmath.py`](scripts/odvmath.py) downloads the pinned New Computer Modern and changes only `unitsPerEm` (1000 → 893): the outlines, metrics and `MATH` table are New Computer Modern's. It is renamed and keeps its own licence, the GUST Font License `GUST-FONT-LICENSE.txt` and `README-odvMath.txt` come with it in the release.

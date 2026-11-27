@@ -1,0 +1,4 @@
+# for scripts/hintsheet.py and scripts/check.py, on top of requirements.txt
+freetype-py>=2.4
+uharfbuzz>=0.40
+Pillow>=10
