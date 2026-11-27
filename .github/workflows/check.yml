@@ -1,0 +1,94 @@
+# Glyph check on every pull request that can change the outlines (#33): build all styles
+# from the base branch and from the pull request in parallel, then list the changed glyphs,
+# report new kinks and curvature steps, render before/after images, and comment the
+# summary on the pull request. New kinks fail the check. Images: the glyph-check artifact.
+name: Glyph check
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/**'
+      - 'sources/**'
+      - 'requirements*.txt'
+      - '.github/workflows/check.yml'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: glyph-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        side: [base, head]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ matrix.side == 'base' && github.event.pull_request.base.sha || github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Cache the pinned Schibsted Grotesk download
+        uses: actions/cache@v4
+        with:
+          path: upstream
+          key: upstream-${{ hashFiles('scripts/build.py') }}
+      - name: Build every style, as the release does
+        run: |
+          pip install -r requirements.txt
+          python3 scripts/build.py --no-draw
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fonts-${{ matrix.side }}
+          path: fonts/ttf/*.ttf
+
+  compare:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: pip install -r requirements.txt -r requirements-check.txt
+      - uses: actions/download-artifact@v4
+        with:
+          name: fonts-base
+          path: build-base
+      - uses: actions/download-artifact@v4
+        with:
+          name: fonts-head
+          path: build-head
+      - name: Compare
+        id: check
+        run: |
+          set +e
+          python3 scripts/check.py build-base build-head glyph-check
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: glyph-check
+          path: glyph-check
+      - name: Comment the summary on the pull request
+        continue-on-error: true   # pull requests from forks get a read-only token
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          { cat glyph-check/report.md; echo; echo "Images and report.json: [run $GITHUB_RUN_ID]($RUN_URL), artifact \`glyph-check\`."; } > comment.md
+          gh pr comment "${{ github.event.pull_request.number }}" -R "${{ github.repository }}" --body-file comment.md --edit-last \
+            || gh pr comment "${{ github.event.pull_request.number }}" -R "${{ github.repository }}" --body-file comment.md
+      - name: Fail on new kinks
+        if: steps.check.outputs.status != '0'
+        run: |
+          echo "::error::New kinks in the pull request build, see the comment or glyph-check/report.md"
+          exit 1
